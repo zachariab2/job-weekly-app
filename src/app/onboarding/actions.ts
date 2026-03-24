@@ -1,0 +1,186 @@
+"use server";
+
+import { z } from "zod";
+import { db, users, profiles, jobPreferences, notificationPreferences, subscriptions } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { requireUser } from "@/lib/auth/session";
+import { getStripeClient } from "@/lib/payments/stripe";
+import { redirect } from "next/navigation";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import { put } from "@vercel/blob";
+
+export async function uploadResumeAction(formData: FormData) {
+  const user = await requireUser();
+  const file = formData.get("resume") as File | null;
+  if (!file || file.size === 0) return { status: "error" as const, message: "No file provided." };
+  if (file.size > 5 * 1024 * 1024) return { status: "error" as const, message: "File must be under 5MB." };
+
+  let resumeUrl: string;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    // Production: store in Vercel Blob
+    const blob = await put(`resumes/${user.id}.pdf`, file, { access: "private" });
+    resumeUrl = blob.url;
+  } else {
+    // Development: store locally
+    const dir = path.join(process.cwd(), "data", "resumes");
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, `${user.id}.pdf`);
+    const bytes = await file.arrayBuffer();
+    await writeFile(filePath, Buffer.from(bytes));
+    resumeUrl = filePath;
+  }
+
+  const existing = await db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) });
+  if (existing) {
+    await db.update(profiles).set({ resumeUrl, updatedAt: new Date() }).where(eq(profiles.id, existing.id));
+  } else {
+    await db.insert(profiles).values({ userId: user.id, resumeUrl });
+  }
+
+  return { status: "ok" as const };
+}
+
+const onboardingSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  university: z.string().optional().default(""),
+  major: z.string().optional().default(""),
+  graduation: z.string().optional().default(""),
+  linkedin: z.string().optional().default(""),
+  github: z.string().optional().default(""),
+  targetRole: z.string().optional().default(""),
+  jobTypes: z.string().optional().default(""),
+  industries: z.string().optional().default(""),
+  locations: z.string().optional().default(""),
+  relocation: z.string().optional().default(""),
+  dreamCompanies: z.string().optional().default(""),
+  notificationThreshold: z.string().optional().default("3"),
+  emailNotif: z.string().optional().default("false"),
+  smsNotif: z.string().optional().default("false"),
+  phone: z.string().optional().default(""),
+});
+
+async function upsertProfile(userId: string, data: Record<string, string>) {
+  const existing = await db.query.profiles.findFirst({ where: eq(profiles.userId, userId) });
+  if (existing) {
+    await db.update(profiles).set({
+      university: data.university,
+      major: data.major,
+      graduation: data.graduation,
+      linkedin: data.linkedin,
+      github: data.github,
+      updatedAt: new Date(),
+    }).where(eq(profiles.id, existing.id));
+  } else {
+    await db.insert(profiles).values({
+      userId,
+      university: data.university,
+      major: data.major,
+      graduation: data.graduation,
+      linkedin: data.linkedin,
+      github: data.github,
+    });
+  }
+}
+
+async function upsertJobPreferences(userId: string, data: Record<string, string>) {
+  const existing = await db.query.jobPreferences.findFirst({ where: eq(jobPreferences.userId, userId) });
+  if (existing) {
+    await db.update(jobPreferences).set({
+      targetRoles: data.targetRole,
+      industries: data.industries,
+      jobTypes: data.jobTypes,
+      locations: data.locations,
+      remotePreference: data.relocation,
+      dreamCompanies: data.dreamCompanies,
+    }).where(eq(jobPreferences.id, existing.id));
+  } else {
+    await db.insert(jobPreferences).values({
+      userId,
+      targetRoles: data.targetRole,
+      industries: data.industries,
+      jobTypes: data.jobTypes,
+      locations: data.locations,
+      remotePreference: data.relocation,
+      dreamCompanies: data.dreamCompanies,
+    });
+  }
+}
+
+async function upsertNotifPrefs(userId: string, data: Record<string, string>) {
+  const threshold = data.notificationThreshold === "Never" ? 999 : Number(data.notificationThreshold) || 3;
+  const existing = await db.query.notificationPreferences.findFirst({ where: eq(notificationPreferences.userId, userId) });
+  if (existing) {
+    await db.update(notificationPreferences).set({
+      emailEnabled: data.emailNotif === "true",
+      smsEnabled: data.smsNotif === "true",
+      phone: data.phone || null,
+      notificationThreshold: threshold,
+    }).where(eq(notificationPreferences.id, existing.id));
+  } else {
+    await db.insert(notificationPreferences).values({
+      userId,
+      emailEnabled: data.emailNotif === "true",
+      smsEnabled: data.smsNotif === "true",
+      phone: data.phone || null,
+      notificationThreshold: threshold,
+    });
+  }
+}
+
+export async function completeOnboarding(payload: Record<string, string | undefined>) {
+  const user = await requireUser();
+  const parsed = onboardingSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    return { status: "error" as const, message: "Please fill in your first and last name." };
+  }
+
+  const data = parsed.data as Record<string, string>;
+
+  await db.update(users)
+    .set({ firstName: data.firstName, lastName: data.lastName })
+    .where(eq(users.id, user.id));
+
+  await upsertProfile(user.id, data);
+  await upsertJobPreferences(user.id, data);
+  await upsertNotifPrefs(user.id, data);
+
+  // Already subscribed — go straight to app
+  const existing = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
+  if (existing?.status === "active") redirect("/applications");
+
+  // Launch Stripe checkout with 7-day free trial
+  const stripe = getStripeClient();
+  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer_email: user.email,
+    metadata: { userId: user.id },
+    subscription_data: {
+      trial_period_days: 7,
+      metadata: { userId: user.id },
+    },
+    line_items: [{
+      quantity: 1,
+      price_data: {
+        currency: "usd",
+        unit_amount: 999,
+        recurring: { interval: "week" },
+        product_data: {
+          name: "JobWeekly — $9.99/week",
+          description: "Curated CS jobs, referral contacts, and AI resume tweaks. 7-day free trial.",
+        },
+      },
+    }],
+    success_url: `${appUrl}/applications?welcome=1`,
+    cancel_url: `${appUrl}/onboarding`,
+  });
+
+  if (!session.url) return { status: "error" as const, message: "Could not start checkout. Try again." };
+
+  redirect(session.url);
+}
