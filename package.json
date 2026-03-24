@@ -27,6 +27,9 @@
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
