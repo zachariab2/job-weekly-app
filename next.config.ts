@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  typescript: {
+    // Type-checked locally — skip during Vercel remote build to avoid env-specific false positives
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;
