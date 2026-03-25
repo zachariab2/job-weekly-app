@@ -130,8 +130,8 @@ export async function generateReportForUser(userId: string) {
         role: rec.role,
         jobUrl: rec.jobUrl ?? null,
         reasoning: rec.reason,
-        alumni: rec.alumni,
-        referralPath: rec.referralPath,
+        alumni: null,
+        referralPath: null,
         resumeFocus: rec.resumeFocus.join(", "),
       })),
     );
@@ -219,20 +219,26 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     };
   }));
 
-  // Generate multiple contacts per company
-  const outreach = recommendations.flatMap((rec) =>
-    rec.contacts.map((contact) => ({
+  // Fetch real GitHub contacts for each company in parallel
+  const contactsByCompany = await Promise.all(
+    recommendations.map((rec) => fetchGitHubContacts(rec.githubOrg, 2)),
+  );
+
+  const outreach = recommendations.flatMap((rec, i) => {
+    const contacts = contactsByCompany[i];
+    if (!contacts.length) return [];
+    return contacts.map((contact) => ({
       company: rec.company,
       name: contact.name,
       role: contact.role,
       connectionBasis: contact.connectionBasis,
-      intensity: contact.connectionBasis.toLowerCase().includes("alumni") ? "warm" : "lukewarm",
+      intensity: "lukewarm" as const,
       snippet: generateSnippet(contact.name, rec, user, profile),
       contactEmail: contact.contactEmail,
       contactLinkedin: contact.contactLinkedin,
       contactGithub: contact.contactGithub,
-    })),
-  );
+    }));
+  });
 
   return {
     reportId,
@@ -241,6 +247,17 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     resume,
     outreach,
   };
+}
+
+// ─── GitHub contact fetching ────────────────────────────────────────────────
+
+interface GitHubMember { login: string; }
+interface GitHubProfile {
+  login: string;
+  name: string | null;
+  bio: string | null;
+  email: string | null;
+  html_url: string;
 }
 
 type Contact = {
@@ -252,147 +269,145 @@ type Contact = {
   contactGithub?: string;
 };
 
+// In-process cache — persists for lifetime of the serverless function instance
+const ghCache = new Map<string, { contacts: Contact[]; at: number }>();
+const GH_TTL = 1000 * 60 * 60 * 6; // 6 hours
+
+async function fetchGitHubContacts(org: string, count = 2): Promise<Contact[]> {
+  const cached = ghCache.get(org);
+  if (cached && Date.now() - cached.at < GH_TTL) return cached.contacts;
+
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "job-weekly-app",
+  };
+  if (process.env.GITHUB_TOKEN) headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
+
+  try {
+    const membersRes = await fetch(
+      `https://api.github.com/orgs/${org}/members?per_page=50&role=member`,
+      { headers, next: { revalidate: 21600 } },
+    );
+    if (!membersRes.ok) return [];
+
+    const members: GitHubMember[] = await membersRes.json();
+    // Shuffle so different users see different contacts
+    const shuffled = [...members].sort(() => Math.random() - 0.5).slice(0, 8);
+
+    const profiles = await Promise.all(
+      shuffled.map(async (m) => {
+        const r = await fetch(`https://api.github.com/users/${m.login}`, { headers });
+        if (!r.ok) return null;
+        return r.json() as Promise<GitHubProfile>;
+      }),
+    );
+
+    const contacts: Contact[] = profiles
+      .filter((p): p is GitHubProfile => p !== null && !!p.name)
+      .slice(0, count)
+      .map((p) => ({
+        name: p.name ?? p.login,
+        role: p.bio?.split("\n")[0]?.replace(/^[@\w\s]+at\s/i, "").slice(0, 60) ?? "Software Engineer",
+        connectionBasis: `Engineer at ${org} on GitHub — public profile`,
+        contactGithub: p.login,
+        ...(p.email ? { contactEmail: p.email } : {}),
+      }));
+
+    ghCache.set(org, { contacts, at: Date.now() });
+    return contacts;
+  } catch {
+    return [];
+  }
+}
+
+// ─── Job catalog ─────────────────────────────────────────────────────────────
+
 type CatalogEntry = {
   company: string;
+  githubOrg: string;
   role: string;
   jobUrl: string;
   reason: string;
-  alumni: string;
-  referralPath: string;
   resumeFocus: string[];
-  contacts: Contact[];
   keywords: string[];
 };
 
 const catalog: CatalogEntry[] = [
   {
     company: "Databricks",
-    role: "AI Residency Intern",
+    githubOrg: "databricks",
+    role: "Software Engineering Intern",
     jobUrl: "https://www.databricks.com/company/careers/university-recruiting",
-    reason: "Heavy research emphasis with Python + distributed systems — aligns with your ML toolkit.",
-    alumni: "2 alumni",
-    referralPath: "Warm intro pending",
-    resumeFocus: ["Spark pipelines", "LLM evaluation"],
-    contacts: [
-      {
-        name: "Aria Patel",
-        role: "ML Platform Engineer",
-        connectionBasis: "Alumni — same CS program",
-        contactEmail: "aria.patel@databricks.com",
-        contactLinkedin: "https://linkedin.com/in/aria-patel-db",
-      },
-      {
-        name: "Marcus Webb",
-        role: "Research Scientist",
-        connectionBasis: "Similar background — distributed ML projects",
-        contactGithub: "marcuswebb",
-        contactLinkedin: "https://linkedin.com/in/marcus-webb",
-      },
-    ],
-    keywords: ["ai", "ml", "residency", "research"],
+    reason: "Heavy ML infrastructure + Python emphasis — your distributed systems and data pipeline work maps directly.",
+    resumeFocus: ["distributed systems", "data pipelines", "Python"],
+    keywords: ["ai", "ml", "data", "infrastructure", "research"],
   },
   {
     company: "Vercel",
-    role: "Product Engineer Intern",
+    githubOrg: "vercel",
+    role: "Software Engineering Intern",
     jobUrl: "https://vercel.com/careers",
-    reason: "Blend of frontend systems + platform reliability; Next.js work is a direct match.",
-    alumni: "1 alumni",
-    referralPath: "DM ready",
-    resumeFocus: ["Next.js", "Edge deploy"],
-    contacts: [
-      {
-        name: "Diego Ramirez",
-        role: "Developer Relations",
-        connectionBasis: "Alumni — graduated same year",
-        contactEmail: "diego@vercel.com",
-        contactLinkedin: "https://linkedin.com/in/diego-ramirez-vercel",
-        contactGithub: "diegoramirez",
-      },
-      {
-        name: "Sonia Park",
-        role: "Software Engineer — Edge Runtime",
-        connectionBasis: "Similar projects — built open-source Next.js tooling",
-        contactGithub: "soniapark",
-      },
-    ],
-    keywords: ["product", "frontend", "next", "edge"],
+    reason: "Frontend infrastructure at scale — Next.js and edge compute experience is a direct match.",
+    resumeFocus: ["Next.js", "frontend", "TypeScript"],
+    keywords: ["frontend", "next", "edge", "product", "web"],
   },
   {
     company: "Anthropic",
-    role: "Applied Research Intern",
+    githubOrg: "anthropics",
+    role: "Research Engineer Intern",
     jobUrl: "https://www.anthropic.com/careers",
-    reason: "Strong math + research background makes you competitive for safety teams.",
-    alumni: "No direct alumni",
-    referralPath: "Adjacent researcher",
-    resumeFocus: ["Transformer pruning", "Safety evals"],
-    contacts: [
-      {
-        name: "Riya Chen",
-        role: "Research Engineer",
-        connectionBasis: "Similar background — ML safety publications",
-        contactLinkedin: "https://linkedin.com/in/riya-chen-anthropic",
-        contactGithub: "riyachen",
-      },
-    ],
-    keywords: ["research", "ai", "safety", "ml"],
+    reason: "Strong ML research background makes you competitive — they hire for both safety evals and applied research.",
+    resumeFocus: ["machine learning", "research", "Python"],
+    keywords: ["research", "ai", "safety", "ml", "llm"],
   },
   {
-    company: "Palantir",
-    role: "Forward Deployed Engineer",
-    jobUrl: "https://www.palantir.com/careers/",
-    reason: "Client-facing build cycles suit your hackathon velocity and full-stack experience.",
-    alumni: "1 alumni",
-    referralPath: "Coffee chat requested",
-    resumeFocus: ["Full-stack", "Impact metrics"],
-    contacts: [
-      {
-        name: "Noah Green",
-        role: "Forward Deployed Engineer",
-        connectionBasis: "Alumni — CS + minor in data science",
-        contactEmail: "ngreen@palantir.com",
-        contactLinkedin: "https://linkedin.com/in/noah-green-fde",
-      },
-      {
-        name: "Leila Osman",
-        role: "Software Engineer",
-        connectionBasis: "Shared project — contributed to same open-source repo",
-        contactGithub: "leilaosman",
-        contactLinkedin: "https://linkedin.com/in/leila-osman",
-      },
-    ],
-    keywords: ["fde", "full", "client", "data"],
+    company: "Stripe",
+    githubOrg: "stripe",
+    role: "Software Engineering Intern",
+    jobUrl: "https://stripe.com/jobs",
+    reason: "Payments infrastructure is complex distributed systems — your backend experience is highly relevant.",
+    resumeFocus: ["backend", "APIs", "reliability"],
+    keywords: ["fintech", "backend", "payments", "infrastructure", "api"],
+  },
+  {
+    company: "Linear",
+    githubOrg: "linearapp",
+    role: "Software Engineering Intern",
+    jobUrl: "https://linear.app/careers",
+    reason: "Small high-craft team building developer tools — strong TypeScript and product sense stand out.",
+    resumeFocus: ["TypeScript", "product", "developer tools"],
+    keywords: ["product", "devtools", "typescript", "design", "frontend"],
+  },
+  {
+    company: "Figma",
+    githubOrg: "figma",
+    role: "Software Engineering Intern",
+    jobUrl: "https://www.figma.com/careers/",
+    reason: "Graphics, performance, and collaborative systems — your frontend + systems work is the right mix.",
+    resumeFocus: ["frontend", "performance", "collaboration"],
+    keywords: ["design", "frontend", "product", "collaboration", "graphics"],
   },
   {
     company: "Notion",
-    role: "Software Engineer Intern",
+    githubOrg: "makenotion",
+    role: "Software Engineering Intern",
     jobUrl: "https://www.notion.so/careers",
-    reason: "Design-minded engineering culture matches your focus on developer tooling UX.",
-    alumni: "1 alumni",
-    referralPath: "PM referral",
-    resumeFocus: ["Design systems", "Collaboration tools"],
-    contacts: [
-      {
-        name: "Maya Ruiz",
-        role: "Product Engineer",
-        connectionBasis: "Alumni — same university, different major",
-        contactLinkedin: "https://linkedin.com/in/maya-ruiz-notion",
-        contactEmail: "mruiz@makenotion.com",
-      },
-    ],
-    keywords: ["design", "notion", "collaboration", "product"],
+    reason: "Design-minded engineering culture — strong product sense and full-stack experience are valued.",
+    resumeFocus: ["full-stack", "product", "React"],
+    keywords: ["product", "fullstack", "collaboration", "notion", "design"],
   },
 ];
 
 function getSuggestionPool(prefs: typeof jobPreferences.$inferSelect | null) {
-  if (!prefs) return catalog;
+  if (!prefs) return catalog.slice(0, 3);
   const role = (prefs.targetRoles ?? "").toLowerCase();
   const industries = (prefs.industries ?? "").toLowerCase();
 
   const matches = catalog.filter((entry) =>
-    entry.keywords.some((keyword) => role.includes(keyword) || industries.includes(keyword)),
+    entry.keywords.some((k) => role.includes(k) || industries.includes(k)),
   );
 
-  if (matches.length >= 3) return matches;
+  if (matches.length >= 3) return matches.slice(0, 3);
   return [...matches, ...catalog].slice(0, 3);
 }
 
@@ -402,8 +417,8 @@ function generateSnippet(
   user: typeof users.$inferSelect,
   profile: typeof profiles.$inferSelect | null,
 ) {
-  const school = profile?.university ?? "your campus";
+  const school = profile?.university ?? "my university";
   const myName = user.firstName ?? "Hey";
   const firstName = contactName.split(" ")[0] ?? "Hi";
-  return `${firstName} — ${myName} here from ${school}. I’m targeting ${rec.role} roles and have been focused on ${rec.resumeFocus[0]}. Would love to connect — any chance you’d be open to a quick referral chat?`;
+  return `${firstName} — ${myName} here, CS student at ${school}. I’m applying for ${rec.role} roles at ${rec.company} and came across your profile. I’ve been focused on ${rec.resumeFocus[0]} and would love to hear about your experience there. Any chance you’d be open to a quick chat?`;
 }
