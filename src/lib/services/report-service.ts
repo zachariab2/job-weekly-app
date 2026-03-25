@@ -143,8 +143,8 @@ export async function getOrCreateReport(userId: string) {
  * user's reports, newest first, deduplicated by company+role.
  */
 export async function getAllActiveJobsForUser(userId: string) {
-  // Trigger a refresh if it's been 3+ days
-  await getOrCreateReport(userId);
+  // Trigger a refresh if it's been 3+ days (swallow errors — show empty state instead of crashing)
+  try { await getOrCreateReport(userId); } catch { /* non-fatal */ }
 
   const [userReports, userApplications] = await Promise.all([
     db.query.reports.findMany({
@@ -305,8 +305,10 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     description: string;
   }>;
 
-  if (jsearchJobs.length >= 5) {
-    jobData = jsearchJobs.map((j) => ({
+  const validJobs = jsearchJobs.filter((j) => j.employer_name && j.job_title);
+
+  if (validJobs.length >= 5) {
+    jobData = validJobs.map((j) => ({
       company: j.employer_name,
       role: j.job_title,
       jobUrl: j.job_apply_link,

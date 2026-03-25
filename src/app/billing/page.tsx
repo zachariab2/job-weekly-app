@@ -7,11 +7,12 @@ import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "./actions";
 
 type BillingPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function BillingPage({ searchParams }: BillingPageProps) {
   const user = await requireUser();
+  const resolvedParams = await searchParams;
   const subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
   const codes = await db.query.referralCodes.findMany({ where: eq(referralCodes.ownerUserId, user.id) });
   const completedCodes = codes.filter((code) => Boolean(code.redeemedAt));
@@ -20,10 +21,10 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   const progressToNext = completedCodes.length % 3;
   const nextChargeDate = subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
   const statusMessage = (() => {
-    const flag = typeof searchParams?.checkout === "string" ? searchParams?.checkout : undefined;
+    const flag = typeof resolvedParams?.checkout === "string" ? resolvedParams?.checkout : undefined;
     if (flag === "success") return "Payment received. We'll refresh your account in a few seconds.";
     if (flag === "cancel") return "Checkout canceled. You can restart whenever you're ready.";
-    if (typeof searchParams?.activate === "string") return "Activate your membership to unlock the dashboard.";
+    if (typeof resolvedParams?.activate === "string") return "Activate your membership to unlock the dashboard.";
     return null;
   })();
 

@@ -78,7 +78,7 @@ export async function requireActiveUser() {
 
   const subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
 
-  if (!subscription || subscription.status !== "active") {
+  if (!subscription || !["active", "trialing"].includes(subscription.status ?? "")) {
     redirect("/billing?activate=1");
   }
 
