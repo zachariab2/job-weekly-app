@@ -156,16 +156,6 @@ export default async function ApplicationsPage() {
                             LinkedIn
                           </a>
                         )}
-                        {contact.contactGithub && (
-                          <a
-                            href={`https://github.com/${contact.contactGithub}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[11px] text-blue-400 hover:text-blue-300 hover:border-blue-400/50 transition"
-                          >
-                            GitHub →
-                          </a>
-                        )}
                       </div>
 
                       {/* Outreach message */}

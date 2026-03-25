@@ -249,151 +249,106 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
   };
 }
 
-// ─── GitHub contact fetching ────────────────────────────────────────────────
-
-interface GitHubMember { login: string; }
-interface GitHubProfile {
-  login: string;
-  name: string | null;
-  bio: string | null;
-  email: string | null;
-  html_url: string;
-}
+// ─── Job catalog ─────────────────────────────────────────────────────────────
+// To add/update contacts: fill in name, role, connectionBasis, and either
+// contactEmail or contactLinkedin (or both). Alumni first, similar background second.
 
 type Contact = {
   name: string;
   role: string;
+  // "Alumni — MIT CS '24" or "Similar background — built distributed systems at X"
   connectionBasis: string;
   contactEmail?: string;
   contactLinkedin?: string;
-  contactGithub?: string;
 };
-
-// In-process cache — persists for lifetime of the serverless function instance
-const ghCache = new Map<string, { contacts: Contact[]; at: number }>();
-const GH_TTL = 1000 * 60 * 60 * 6; // 6 hours
-
-async function fetchGitHubContacts(org: string, count = 2): Promise<Contact[]> {
-  const cached = ghCache.get(org);
-  if (cached && Date.now() - cached.at < GH_TTL) return cached.contacts;
-
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github.v3+json",
-    "User-Agent": "job-weekly-app",
-  };
-  if (process.env.GITHUB_TOKEN) headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
-
-  try {
-    const membersRes = await fetch(
-      `https://api.github.com/orgs/${org}/members?per_page=50&role=member`,
-      { headers, next: { revalidate: 21600 } },
-    );
-    if (!membersRes.ok) return [];
-
-    const members: GitHubMember[] = await membersRes.json();
-    // Shuffle so different users see different contacts
-    const shuffled = [...members].sort(() => Math.random() - 0.5).slice(0, 8);
-
-    const profiles = await Promise.all(
-      shuffled.map(async (m) => {
-        const r = await fetch(`https://api.github.com/users/${m.login}`, { headers });
-        if (!r.ok) return null;
-        return r.json() as Promise<GitHubProfile>;
-      }),
-    );
-
-    const contacts: Contact[] = profiles
-      .filter((p): p is GitHubProfile => p !== null && !!p.name)
-      .slice(0, count)
-      .map((p) => ({
-        name: p.name ?? p.login,
-        role: p.bio?.split("\n")[0]?.replace(/^[@\w\s]+at\s/i, "").slice(0, 60) ?? "Software Engineer",
-        connectionBasis: `Engineer at ${org} on GitHub — public profile`,
-        contactGithub: p.login,
-        ...(p.email ? { contactEmail: p.email } : {}),
-      }));
-
-    ghCache.set(org, { contacts, at: Date.now() });
-    return contacts;
-  } catch {
-    return [];
-  }
-}
-
-// ─── Job catalog ─────────────────────────────────────────────────────────────
 
 type CatalogEntry = {
   company: string;
-  githubOrg: string;
   role: string;
   jobUrl: string;
   reason: string;
   resumeFocus: string[];
+  contacts: Contact[];
   keywords: string[];
 };
 
 const catalog: CatalogEntry[] = [
   {
     company: "Databricks",
-    githubOrg: "databricks",
     role: "Software Engineering Intern",
     jobUrl: "https://www.databricks.com/company/careers/university-recruiting",
-    reason: "Heavy ML infrastructure + Python emphasis — your distributed systems and data pipeline work maps directly.",
+    reason: "Heavy ML infrastructure + Python emphasis — distributed systems and data pipeline work maps directly.",
     resumeFocus: ["distributed systems", "data pipelines", "Python"],
+    contacts: [
+      // ADD REAL CONTACTS HERE
+      // { name: "First Last", role: "ML Engineer", connectionBasis: "Alumni — MIT CS '24", contactEmail: "...", contactLinkedin: "https://linkedin.com/in/..." },
+    ],
     keywords: ["ai", "ml", "data", "infrastructure", "research"],
   },
   {
     company: "Vercel",
-    githubOrg: "vercel",
     role: "Software Engineering Intern",
     jobUrl: "https://vercel.com/careers",
     reason: "Frontend infrastructure at scale — Next.js and edge compute experience is a direct match.",
     resumeFocus: ["Next.js", "frontend", "TypeScript"],
+    contacts: [
+      // ADD REAL CONTACTS HERE
+    ],
     keywords: ["frontend", "next", "edge", "product", "web"],
   },
   {
     company: "Anthropic",
-    githubOrg: "anthropics",
     role: "Research Engineer Intern",
     jobUrl: "https://www.anthropic.com/careers",
-    reason: "Strong ML research background makes you competitive — they hire for both safety evals and applied research.",
+    reason: "Strong ML background makes you competitive — they hire for safety evals and applied research.",
     resumeFocus: ["machine learning", "research", "Python"],
+    contacts: [
+      // ADD REAL CONTACTS HERE
+    ],
     keywords: ["research", "ai", "safety", "ml", "llm"],
   },
   {
     company: "Stripe",
-    githubOrg: "stripe",
     role: "Software Engineering Intern",
     jobUrl: "https://stripe.com/jobs",
-    reason: "Payments infrastructure is complex distributed systems — your backend experience is highly relevant.",
+    reason: "Payments infrastructure is complex distributed systems — backend experience is highly relevant.",
     resumeFocus: ["backend", "APIs", "reliability"],
+    contacts: [
+      // ADD REAL CONTACTS HERE
+    ],
     keywords: ["fintech", "backend", "payments", "infrastructure", "api"],
   },
   {
     company: "Linear",
-    githubOrg: "linearapp",
     role: "Software Engineering Intern",
     jobUrl: "https://linear.app/careers",
-    reason: "Small high-craft team building developer tools — strong TypeScript and product sense stand out.",
+    reason: "Small high-craft team building developer tools — TypeScript and product sense stand out.",
     resumeFocus: ["TypeScript", "product", "developer tools"],
+    contacts: [
+      // ADD REAL CONTACTS HERE
+    ],
     keywords: ["product", "devtools", "typescript", "design", "frontend"],
   },
   {
     company: "Figma",
-    githubOrg: "figma",
     role: "Software Engineering Intern",
     jobUrl: "https://www.figma.com/careers/",
-    reason: "Graphics, performance, and collaborative systems — your frontend + systems work is the right mix.",
+    reason: "Graphics, performance, and collaborative systems — frontend + systems work is the right mix.",
     resumeFocus: ["frontend", "performance", "collaboration"],
+    contacts: [
+      // ADD REAL CONTACTS HERE
+    ],
     keywords: ["design", "frontend", "product", "collaboration", "graphics"],
   },
   {
     company: "Notion",
-    githubOrg: "makenotion",
     role: "Software Engineering Intern",
     jobUrl: "https://www.notion.so/careers",
-    reason: "Design-minded engineering culture — strong product sense and full-stack experience are valued.",
+    reason: "Design-minded engineering culture — product sense and full-stack experience are valued.",
     resumeFocus: ["full-stack", "product", "React"],
+    contacts: [
+      // ADD REAL CONTACTS HERE
+    ],
     keywords: ["product", "fullstack", "collaboration", "notion", "design"],
   },
 ];
