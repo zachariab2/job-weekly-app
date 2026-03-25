@@ -1,47 +1,11 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
-import { db, applications as applicationsTable } from "@/lib/db";
-import { eq } from "drizzle-orm";
-import { getOrCreateReport } from "@/lib/services/report-service";
+import { getAllActiveJobsForUser } from "@/lib/services/report-service";
 import { setApplicationStatusAction } from "./actions";
-
-const statusConfig = {
-  untouched: { label: "Untouched", dot: "bg-white/20", text: "text-white/40" },
-  "in-progress": { label: "In Progress", dot: "bg-amber-400", text: "text-amber-400" },
-  applied: { label: "Applied", dot: "bg-[var(--accent-strong)]", text: "text-[var(--accent-strong)]" },
-} as const;
 
 export default async function ApplicationsPage() {
   const user = await requireActiveUser();
-
-  const [report, userApplications] = await Promise.all([
-    getOrCreateReport(user.id),
-    db.query.applications.findMany({ where: eq(applicationsTable.userId, user.id) }),
-  ]);
-
-  const statusMap = new Map(
-    userApplications
-      .filter((a) => a.status !== "done")
-      .map((a) => [`${a.company}||${a.role}`, a.status]),
-  );
-
-  const recommendations = report.recommendations ?? [];
-  const networking = report.networking ?? [];
-  const resumeRecs = report.resumeRecommendations ?? [];
-
-  const rows = recommendations.map((rec) => {
-    const key = `${rec.company}||${rec.role}`;
-    const currentStatus = (statusMap.get(key) ?? "untouched") as keyof typeof statusConfig;
-    // All contacts for this company
-    const contacts = networking.filter(
-      (n) => n.company?.toLowerCase() === rec.company.toLowerCase(),
-    );
-    const resumeTips = resumeRecs.find(
-      (r) => r.company?.toLowerCase() === rec.company.toLowerCase(),
-    );
-    return { rec, currentStatus, contacts, resumeTips };
-  });
-
+  const rows = await getAllActiveJobsForUser(user.id);
   const totalUntouched = rows.filter((r) => r.currentStatus === "untouched").length;
 
   return (
@@ -61,9 +25,6 @@ export default async function ApplicationsPage() {
           <span className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-amber-400 inline-block" />In Progress
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[var(--accent-strong)] inline-block" />Applied
-          </span>
         </div>
       </div>
 
@@ -72,7 +33,7 @@ export default async function ApplicationsPage() {
         <span>Company &amp; Role</span>
         <span>Referral Contacts</span>
         <span>Resume Tips</span>
-        <span className="w-[120px] text-right">Status</span>
+        <span className="w-[140px] text-right">Status</span>
       </div>
 
       {/* Rows */}
@@ -88,13 +49,8 @@ export default async function ApplicationsPage() {
             key={`${rec.company}-${rec.role}`}
             className="rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition-colors"
           >
-            {/* Status bar on left */}
             <div className={`h-0.5 rounded-t-2xl ${
-              currentStatus === "applied"
-                ? "bg-[var(--accent-strong)]"
-                : currentStatus === "in-progress"
-                  ? "bg-amber-400"
-                  : "bg-transparent"
+              currentStatus === "in-progress" ? "bg-amber-400" : "bg-transparent"
             }`} />
 
             <div className="grid gap-6 p-5 md:grid-cols-[2fr_2fr_1.5fr_auto] md:items-start">
@@ -120,13 +76,10 @@ export default async function ApplicationsPage() {
                 <p className="text-xs text-white/30 leading-relaxed mt-2">{rec.reasoning}</p>
               </div>
 
-              {/* Referral contacts — multiple */}
+              {/* Referral contacts */}
               <div className="space-y-3">
                 {contacts.length === 0 ? (
-                  <div>
-                    <p className="text-sm text-white/40">{rec.alumni}</p>
-                    <p className="text-xs text-white/25 mt-0.5">{rec.referralPath}</p>
-                  </div>
+                  <p className="text-xs text-white/25">No contacts yet</p>
                 ) : (
                   contacts.map((contact, i) => (
                     <div key={i} className="rounded-xl border border-white/10 bg-white/[0.04] p-3 space-y-2">
@@ -135,8 +88,6 @@ export default async function ApplicationsPage() {
                         <p className="text-xs text-white/45">{contact.role}</p>
                         <p className="text-[11px] text-white/30 mt-0.5">{contact.connectionBasis}</p>
                       </div>
-
-                      {/* Contact info */}
                       <div className="flex flex-wrap gap-2">
                         {contact.contactEmail && (
                           <a
@@ -157,8 +108,6 @@ export default async function ApplicationsPage() {
                           </a>
                         )}
                       </div>
-
-                      {/* Outreach message */}
                       {contact.outreachSnippet && (
                         <div className="border-t border-white/5 pt-2">
                           <p className="text-[10px] uppercase tracking-wider text-white/25 mb-1">Ready-to-send message</p>
@@ -195,8 +144,8 @@ export default async function ApplicationsPage() {
               </div>
 
               {/* Status */}
-              <div className="flex flex-col gap-1 w-[120px]">
-                {(["untouched", "in-progress", "applied"] as const).map((s) => (
+              <div className="flex flex-col gap-1 w-[140px]">
+                {(["untouched", "in-progress"] as const).map((s) => (
                   <form key={s} action={setApplicationStatusAction}>
                     <input type="hidden" name="company" value={rec.company} />
                     <input type="hidden" name="role" value={rec.role} />
@@ -209,11 +158,23 @@ export default async function ApplicationsPage() {
                           : "text-white/30 hover:text-white/55 hover:bg-white/5"
                       }`}
                     >
-                      <span className={`size-2 rounded-full shrink-0 ${statusConfig[s].dot}`} />
-                      {statusConfig[s].label}
+                      <span className={`size-2 rounded-full shrink-0 ${s === "in-progress" ? "bg-amber-400" : "bg-white/20"}`} />
+                      {s === "in-progress" ? "In Progress" : "Untouched"}
                     </button>
                   </form>
                 ))}
+                <form action={setApplicationStatusAction}>
+                  <input type="hidden" name="company" value={rec.company} />
+                  <input type="hidden" name="role" value={rec.role} />
+                  <input type="hidden" name="status" value="applied" />
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-all text-white/30 hover:text-[var(--accent-strong)] hover:bg-[var(--accent-strong)]/10"
+                  >
+                    <span className="size-2 rounded-full shrink-0 bg-[var(--accent-strong)]" />
+                    Mark Applied →
+                  </button>
+                </form>
               </div>
             </div>
           </div>
