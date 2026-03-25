@@ -69,15 +69,15 @@ async function fetchJSearchJobs(query: string, count = 10): Promise<JSearchJob[]
 
 // ─── OpenAI resume tips ───────────────────────────────────────────────────────
 
-async function generateRealResumeTips(
+async function generateTipsAndReason(
   resumeText: string,
   company: string,
   role: string,
   jobDescription: string,
-): Promise<string[]> {
+): Promise<{ bullets: string[]; reason: string }> {
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
-    max_tokens: 512,
+    max_tokens: 600,
     messages: [{
       role: "user",
       content: `You are a resume coach helping a CS student tailor their resume for a specific job application.
@@ -88,18 +88,30 @@ ${resumeText.slice(0, 3000)}
 JOB: ${role} at ${company}
 JOB DESCRIPTION: ${jobDescription.slice(0, 1000)}
 
-Give exactly 3 short, specific, actionable bullet points (1 sentence each) telling the candidate what to change or emphasize in their resume for this specific application. Be concrete — reference what's actually in their resume and the job description. No fluff.
+Return exactly 4 lines:
+1. REASON: one sentence (max 20 words) explaining why this role is a strong match for this specific student based on their resume and the job. Be specific — mention a skill or experience they have.
+2-4. Three bullet points starting with "•" — short, specific, actionable resume edits for this application. Reference what's actually in their resume.
 
-Format: return only the 3 bullets, one per line, starting with "•"`,
+Format:
+REASON: <sentence>
+• <bullet>
+• <bullet>
+• <bullet>`,
     }],
   });
 
   const text = response.choices[0]?.message?.content ?? "";
-  return text
-    .split("\n")
-    .filter((l) => l.trim().startsWith("•"))
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  const reasonLine = lines.find((l) => l.startsWith("REASON:"));
+  const reason = reasonLine ? reasonLine.replace(/^REASON:\s*/, "").trim() : "";
+
+  const bullets = lines
+    .filter((l) => l.startsWith("•"))
     .map((l) => l.replace(/^•\s*/, "").trim())
     .slice(0, 3);
+
+  return { bullets, reason };
 }
 
 // ─── TTL ──────────────────────────────────────────────────────────────────────
@@ -218,7 +230,7 @@ export async function generateReportForUser(userId: string) {
         company: rec.company,
         role: rec.role,
         jobUrl: rec.jobUrl ?? null,
-        reasoning: rec.description.slice(0, 300),
+        reasoning: blueprint.reasoningByCompany.get(rec.company) ?? "",
         alumni: null,
         referralPath: null,
         resumeFocus: rec.resumeFocus.join(", "),
@@ -322,14 +334,14 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     };
   });
 
-  // Generate AI resume tips per job
-  const resume = await Promise.all(enrichedJobs.map(async (job) => {
+  // Generate AI resume tips + reasoning per job
+  const aiResults = await Promise.all(enrichedJobs.map(async (job) => {
     if (resumeText && job.description) {
-      const bullets = await generateRealResumeTips(resumeText, job.company, job.role, job.description);
-      if (bullets.length > 0) return { company: job.company, bullets };
+      const result = await generateTipsAndReason(resumeText, job.company, job.role, job.description);
+      if (result.bullets.length > 0) return result;
     }
     return {
-      company: job.company,
+      reason: job.description.slice(0, 120).replace(/\s+/g, " ").trim(),
       bullets: [
         `Highlight your most relevant technical experience for ${job.role}.`,
         `Quantify your impact across your top 2 projects.`,
@@ -337,6 +349,9 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
       ],
     };
   }));
+
+  const resume = aiResults.map((r, i) => ({ company: enrichedJobs[i].company, bullets: r.bullets }));
+  const reasoningByCompany = new Map(enrichedJobs.map((job, i) => [job.company, aiResults[i].reason]));
 
   // Build outreach from catalog contacts
   const outreach = enrichedJobs.flatMap((job) =>
@@ -354,7 +369,7 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
 
   const summary = `${user.firstName ?? "You"} matched for ${targetRole} roles. ${applications.length} applications logged. Jobs refresh every 3 days.`;
 
-  return { reportId, summary, recommendations: enrichedJobs, resume, outreach };
+  return { reportId, summary, recommendations: enrichedJobs, resume, outreach, reasoningByCompany };
 }
 
 // ─── Job catalog (contacts + fallback listings) ───────────────────────────────
