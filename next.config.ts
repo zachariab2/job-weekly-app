@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     // Type-checked locally — skip during Vercel remote build to avoid env-specific false positives
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ["pdf-parse"],
 };
 
 export default nextConfig;

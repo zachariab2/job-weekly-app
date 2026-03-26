@@ -13,9 +13,6 @@ import {
 import { v4 as uuid } from "uuid";
 import OpenAI from "openai";
 import { readFile } from "fs/promises";
-import * as pdfParseModule from "pdf-parse";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule;
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -31,6 +28,10 @@ async function getResumeText(resumePath: string | null | undefined): Promise<str
     } else {
       buffer = await readFile(resumePath);
     }
+    // Dynamic import so pdf-parse doesn't execute on module load (breaks serverless)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParseModule = await import("pdf-parse");
+    const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
     const parsed = await pdfParse(buffer);
     return parsed.text.trim() || null;
   } catch {
