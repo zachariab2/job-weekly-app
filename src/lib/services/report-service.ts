@@ -14,7 +14,12 @@ import { v4 as uuid } from "uuid";
 import OpenAI from "openai";
 import { readFile } from "fs/promises";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Lazy OpenAI client — do NOT initialize at module level.
+// The OpenAI constructor throws if OPENAI_API_KEY is missing, which would crash
+// every page that imports this module (even pages that never call OpenAI).
+function getOpenAI(): OpenAI {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
@@ -76,7 +81,7 @@ async function generateTipsAndReason(
   role: string,
   jobDescription: string,
 ): Promise<{ bullets: string[]; reason: string }> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o-mini",
     max_tokens: 600,
     messages: [{
