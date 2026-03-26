@@ -7,8 +7,13 @@ import Link from "next/link";
 
 export default async function ResumePage() {
   const user = await requireActiveUser();
-  const report = await getOrCreateReport(user.id);
-  const resumeRecommendations = report.resumeRecommendations ?? [];
+  let report = null;
+  try {
+    report = await getOrCreateReport(user.id);
+  } catch {
+    // Report generation failed — show empty state
+  }
+  const resumeRecommendations = report?.resumeRecommendations ?? [];
 
   return (
     <AppShell active="/resume" user={user}>
@@ -38,7 +43,7 @@ export default async function ResumePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-base font-semibold text-white">{entry.company}</p>
-                  <p className="text-xs text-white/50">Updated {report.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : "recently"}</p>
+                  <p className="text-xs text-white/50">Updated {report?.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : "recently"}</p>
                 </div>
                 <Button variant="secondary" size="sm">
                   Download

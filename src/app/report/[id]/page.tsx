@@ -5,10 +5,11 @@ import { db, reports } from "@/lib/db";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-export default async function ReportDetailPage({ params }: { params: { id: string } }) {
+export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await requireActiveUser();
   const report = await db.query.reports.findFirst({
-    where: and(eq(reports.id, params.id), eq(reports.userId, user.id)),
+    where: and(eq(reports.id, id), eq(reports.userId, user.id)),
     with: {
       recommendations: true,
       networking: true,
