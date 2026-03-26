@@ -152,20 +152,27 @@ export async function getAllActiveJobsForUser(userId: string) {
   // Trigger a refresh if it's been 3+ days (swallow errors — show empty state instead of crashing)
   try { await getOrCreateReport(userId); } catch { /* non-fatal */ }
 
-  const [userReports, userApplications] = await Promise.all([
-    db.query.reports.findMany({
-      where: eq(reports.userId, userId),
-      orderBy: desc(reports.generatedAt),
-      with: {
-        recommendations: true,
-        networking: true,
-        resumeRecommendations: true,
-      },
-    }),
-    db.query.applications.findMany({
-      where: eq(applications.userId, userId),
-    }),
-  ]);
+  let queryResult;
+  try {
+    queryResult = await Promise.all([
+      db.query.reports.findMany({
+        where: eq(reports.userId, userId),
+        orderBy: desc(reports.generatedAt),
+        with: {
+          recommendations: true,
+          networking: true,
+          resumeRecommendations: true,
+        },
+      }),
+      db.query.applications.findMany({
+        where: eq(applications.userId, userId),
+      }),
+    ]);
+  } catch (err) {
+    console.error("[getAllActiveJobsForUser] DB query failed:", err instanceof Error ? err.message : String(err));
+    return [];
+  }
+  const [userReports, userApplications] = queryResult;
 
   const appliedKeys = new Set(
     userApplications
