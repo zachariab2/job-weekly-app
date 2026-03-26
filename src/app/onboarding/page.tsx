@@ -1,15 +1,44 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
-import { completeOnboarding, uploadResumeAction } from "./actions";
+import { completeOnboarding, uploadResumeAction, parseResumeFieldsAction } from "./actions";
 import { Button } from "@/components/ui/button";
 
 const TOTAL_STEPS = 6;
+
+const MAJOR_OPTIONS = [
+  "Computer Science",
+  "Software Engineering",
+  "Computer Engineering",
+  "Data Science",
+  "Information Systems",
+  "Electrical Engineering",
+  "Mathematics",
+  "Statistics",
+  "Physics",
+  "Business",
+  "Other",
+];
+
+const ROLE_OPTIONS = [
+  "Software Engineer",
+  "Backend Engineer",
+  "Frontend Engineer",
+  "Full Stack Engineer",
+  "Data Engineer",
+  "Data Analyst",
+  "ML Engineer",
+  "Product Manager",
+  "Other",
+];
+
+const JOB_TYPE_OPTIONS = ["Internship", "Co-op", "New Grad", "Full-time", "Contract"];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<Record<string, string>>({});
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,11 +50,29 @@ export default function OnboardingPage() {
   function next() { setError(null); setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1)); }
   function back() { setError(null); setStep((s) => Math.max(s - 1, 0)); }
 
-  function handleFile(file: File | null) {
+  async function handleFile(file: File | null) {
     if (!file) return;
     setResumeFile(file);
-    // Auto-fill from filename as placeholder until Claude API parses it
-    set("resumeName", file.name);
+    setIsParsing(true);
+    try {
+      const fd = new FormData();
+      fd.append("resume", file);
+      const { fields } = await parseResumeFieldsAction(fd);
+      setForm((prev) => ({
+        ...prev,
+        ...(fields.firstName ? { firstName: fields.firstName } : {}),
+        ...(fields.lastName ? { lastName: fields.lastName } : {}),
+        ...(fields.university ? { university: fields.university } : {}),
+        ...(fields.major ? { major: fields.major } : {}),
+        ...(fields.graduation ? { graduation: fields.graduation } : {}),
+        ...(fields.linkedin ? { linkedin: fields.linkedin } : {}),
+        ...(fields.github ? { github: fields.github } : {}),
+      }));
+    } catch {
+      // parse failed silently — user fills manually
+    } finally {
+      setIsParsing(false);
+    }
   }
 
   function submit() {
@@ -69,9 +116,9 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-2.5">
               {[
-                { title: "Curated job list, updated constantly", body: "CS-relevant roles pulled from Greenhouse, Lever, and GitHub — filtered to match your profile." },
+                { title: "5 curated jobs, refreshed every 3 days", body: "Real CS roles matched to your profile — internships, co-ops, new grad. A new batch drops automatically every 3 days so the list stays fresh." },
                 { title: "Referral contacts for every job", body: "Alumni from your school first. No match? We find engineers with similar backgrounds and give you their contact info + a ready-to-send message." },
-                { title: "Resume tweaks per application", body: "Upload your resume once. We highlight what to change for each role. Accept a suggestion and your resume updates automatically." },
+                { title: "Resume tweaks per application", body: "Upload your resume once. We highlight what to change for each role based on the job description." },
                 { title: "Notifications when new matches drop", body: "You pick the threshold. Get a text or email when new unactioned jobs appear — no spam." },
               ].map((item) => (
                 <div key={item.title} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
@@ -89,7 +136,7 @@ export default function OnboardingPage() {
             <div>
               <h1 className="text-2xl font-semibold text-white">Upload your resume</h1>
               <p className="mt-1 text-sm text-white/50">
-                We&apos;ll use it to auto-fill your profile and tailor suggestions per job. PDF only.
+                We&apos;ll read it to auto-fill your name, school, and major on the next step. PDF only.
               </p>
             </div>
 
@@ -107,7 +154,13 @@ export default function OnboardingPage() {
               onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0] ?? null); }}
               className="cursor-pointer rounded-xl border-2 border-dashed border-white/15 bg-white/[0.03] p-12 text-center space-y-3 hover:border-[var(--accent-strong)]/40 hover:bg-white/[0.05] transition"
             >
-              {resumeFile ? (
+              {isParsing ? (
+                <>
+                  <p className="text-3xl">⏳</p>
+                  <p className="text-sm text-white/60">Reading your resume…</p>
+                  <p className="text-xs text-white/30">We&apos;ll auto-fill your info on the next step</p>
+                </>
+              ) : resumeFile ? (
                 <>
                   <p className="text-3xl">✅</p>
                   <p className="text-sm font-medium text-white">{resumeFile.name}</p>
@@ -145,7 +198,14 @@ export default function OnboardingPage() {
                 <Field label="Last name *" name="lastName" value={form.lastName} onChange={set} placeholder="Chen" />
               </div>
               <Field label="University" name="university" value={form.university} onChange={set} placeholder="MIT" />
-              <Field label="Major" name="major" value={form.major} onChange={set} placeholder="Computer Science" />
+              <SelectField
+                label="Major"
+                name="major"
+                value={form.major}
+                onChange={set}
+                options={MAJOR_OPTIONS}
+                placeholder="Select your major"
+              />
               <Field label="Graduation" name="graduation" value={form.graduation} onChange={set} placeholder="May 2026" />
               <Field label="LinkedIn URL" name="linkedin" value={form.linkedin} onChange={set} placeholder="linkedin.com/in/yourname" />
               <Field label="GitHub username" name="github" value={form.github} onChange={set} placeholder="yourhandle" />
@@ -161,9 +221,23 @@ export default function OnboardingPage() {
               <p className="mt-1 text-sm text-white/50">The more specific, the better your matches.</p>
             </div>
             <div className="space-y-4">
-              <Field label="Target roles" name="targetRole" value={form.targetRole} onChange={set} placeholder="Software Engineer, ML Engineer" />
+              <SelectField
+                label="Target role"
+                name="targetRole"
+                value={form.targetRole}
+                onChange={set}
+                options={ROLE_OPTIONS}
+                placeholder="Select your target role"
+              />
               <Field label="Industries" name="industries" value={form.industries} onChange={set} placeholder="AI / ML, Fintech, Developer Tools" />
-              <PillGroup label="Job type" name="jobTypes" options={["Full-time", "Internship", "Co-op", "Contract"]} value={form.jobTypes} onChange={set} />
+              <SelectField
+                label="Job type"
+                name="jobTypes"
+                value={form.jobTypes}
+                onChange={set}
+                options={JOB_TYPE_OPTIONS}
+                placeholder="Select one"
+              />
               <Field label="Preferred locations" name="locations" value={form.locations} onChange={set} placeholder="NYC, SF, Remote" />
               <PillGroup label="Remote preference" name="relocation" options={["On-site", "Hybrid", "Remote", "Any"]} value={form.relocation} onChange={set} />
               <Field label="Dream companies (optional)" name="dreamCompanies" value={form.dreamCompanies} onChange={set} placeholder="Stripe, Figma, Notion" />
@@ -255,7 +329,7 @@ export default function OnboardingPage() {
           ) : <span />}
 
           {step < TOTAL_STEPS - 1 ? (
-            <Button onClick={next} disabled={step === 1 && !resumeFile}>
+            <Button onClick={next} disabled={(step === 1 && !resumeFile) || isParsing}>
               {step === 0 ? "Get started →" : "Continue →"}
             </Button>
           ) : (
@@ -309,6 +383,36 @@ function PillGroup({ label, name, options, value, onChange }: {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SelectField({ label, name, value, onChange, options, placeholder }: {
+  label: string;
+  name: string;
+  value?: string;
+  onChange: (k: string, v: string) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wider text-white/30 mb-1.5">{label}</p>
+      <select
+        name={name}
+        value={value ?? ""}
+        onChange={(e) => onChange(name, e.target.value)}
+        className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white focus:border-[var(--accent-strong)]/50 focus:outline-none transition"
+      >
+        <option value="" disabled className="bg-black text-white/60">
+          {placeholder ?? "Select one"}
+        </option>
+        {options.map((option) => (
+          <option key={option} value={option} className="bg-black text-white">
+            {option}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

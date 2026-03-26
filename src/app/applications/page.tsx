@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
 import { getAllActiveJobsForUser } from "@/lib/services/report-service";
-import { setApplicationStatusAction } from "./actions";
+import { setApplicationStatusAction, generateReportAction } from "./actions";
 
 export default async function ApplicationsPage() {
   const user = await requireActiveUser();
@@ -39,8 +39,16 @@ export default async function ApplicationsPage() {
       {/* Rows */}
       <div className="space-y-2">
         {rows.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-12 text-center text-sm text-white/35">
-            Your first batch of curated jobs is being generated.
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-12 text-center space-y-4">
+            <p className="text-sm text-white/35">No job recommendations yet.</p>
+            <form action={generateReportAction}>
+              <button
+                type="submit"
+                className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition"
+              >
+                Generate my first report
+              </button>
+            </form>
           </div>
         )}
 
@@ -173,6 +181,18 @@ export default async function ApplicationsPage() {
                   >
                     <span className="size-2 rounded-full shrink-0 bg-[var(--accent-strong)]" />
                     Mark Applied →
+                  </button>
+                </form>
+                <form action={setApplicationStatusAction}>
+                  <input type="hidden" name="company" value={rec.company} />
+                  <input type="hidden" name="role" value={rec.role} />
+                  <input type="hidden" name="status" value="dismissed" />
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-all text-white/25 hover:text-red-300 hover:bg-red-500/10"
+                  >
+                    <span className="size-2 rounded-full shrink-0 bg-red-400/70" />
+                    Dismiss
                   </button>
                 </form>
               </div>

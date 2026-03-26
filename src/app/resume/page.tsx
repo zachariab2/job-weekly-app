@@ -2,17 +2,12 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireActiveUser } from "@/lib/auth/session";
-import { getOrCreateReport } from "@/lib/services/report-service";
+import { getLatestReport } from "@/lib/services/report-service";
 import Link from "next/link";
 
 export default async function ResumePage() {
   const user = await requireActiveUser();
-  let report = null;
-  try {
-    report = await getOrCreateReport(user.id);
-  } catch {
-    // Report generation failed — show empty state
-  }
+  const report = await getLatestReport(user.id);
   const resumeRecommendations = report?.resumeRecommendations ?? [];
 
   return (

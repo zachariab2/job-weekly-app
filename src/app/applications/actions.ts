@@ -3,9 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { db, applications } from "@/lib/db";
 import { requireActiveUser } from "@/lib/auth/session";
+import { generateReportForUser } from "@/lib/services/report-service";
 import { and, eq } from "drizzle-orm";
 
-const allStatuses = ["untouched", "in-progress", "applied", "done"] as const;
+export async function generateReportAction(): Promise<void> {
+  const user = await requireActiveUser();
+  try {
+    await generateReportForUser(user.id);
+  } catch (err) {
+    console.error("[generateReportAction] failed:", err instanceof Error ? err.message : String(err));
+  }
+  revalidatePath("/applications");
+}
+
+const allStatuses = ["untouched", "in-progress", "applied", "done", "dismissed"] as const;
 type Status = (typeof allStatuses)[number];
 
 export async function setApplicationStatusAction(formData: FormData): Promise<void> {
@@ -24,11 +35,7 @@ export async function setApplicationStatusAction(formData: FormData): Promise<vo
     ),
   });
 
-  if (status === "untouched") {
-    if (existing) {
-      await db.delete(applications).where(eq(applications.id, existing.id));
-    }
-  } else if (existing) {
+  if (existing) {
     await db
       .update(applications)
       .set({ status, updatedAt: new Date() })

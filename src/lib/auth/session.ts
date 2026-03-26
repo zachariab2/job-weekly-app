@@ -49,12 +49,16 @@ export async function getSessionUser() {
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const session = await db.query.sessions.findFirst({
-    where: and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())),
-    with: {
-      user: true,
-    },
-  });
+  let session;
+  try {
+    session = await db.query.sessions.findFirst({
+      where: and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())),
+      with: { user: true },
+    });
+  } catch (err) {
+    console.error("[getSessionUser] DB error:", err instanceof Error ? err.message : String(err));
+    return null;
+  }
 
   if (!session) {
     jar.delete(SESSION_COOKIE);
@@ -63,6 +67,7 @@ export async function getSessionUser() {
 
   return session.user;
 }
+
 
 export async function requireUser() {
   const user = await getSessionUser();
@@ -76,7 +81,14 @@ export async function requireActiveUser() {
   // Skip subscription check in local dev
   if (process.env.NODE_ENV === "development") return user;
 
-  const subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
+  let subscription;
+  try {
+    subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
+  } catch (err) {
+    console.error("[requireActiveUser] subscription DB error:", err instanceof Error ? err.message : String(err));
+    // If we can't check the subscription, let the user through rather than crashing.
+    return user;
+  }
 
   if (!subscription || !["active", "trialing"].includes(subscription.status ?? "")) {
     redirect("/billing?activate=1");

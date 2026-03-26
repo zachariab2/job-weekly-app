@@ -10,6 +10,69 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { put } from "@vercel/blob";
 
+type ParsedResumeFields = {
+  firstName?: string;
+  lastName?: string;
+  university?: string;
+  major?: string;
+  graduation?: string;
+  linkedin?: string;
+  github?: string;
+};
+
+export async function parseResumeFieldsAction(formData: FormData): Promise<{ fields: ParsedResumeFields }> {
+  const file = formData.get("resume") as File | null;
+  if (!file || file.size === 0) return { fields: {} };
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const pdfParseModule = await import("pdf-parse");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
+    const parsed = await pdfParse(buffer);
+    const text = parsed.text?.slice(0, 3000) ?? "";
+    if (!text) return { fields: {} };
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return { fields: {} };
+
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({ apiKey });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 300,
+      messages: [{
+        role: "user",
+        content: `Extract the following fields from this resume. Return valid JSON only, no explanation. Use null for missing fields.
+
+Fields: firstName, lastName, university, major, graduation (e.g. "May 2026"), linkedin (full URL), github (username only, no URL)
+
+Resume:
+${text}`,
+      }],
+    });
+
+    const raw = response.choices[0]?.message?.content ?? "{}";
+    const json = raw.replace(/```json|```/g, "").trim();
+    const data = JSON.parse(json);
+
+    return {
+      fields: {
+        firstName: data.firstName || undefined,
+        lastName: data.lastName || undefined,
+        university: data.university || undefined,
+        major: data.major || undefined,
+        graduation: data.graduation || undefined,
+        linkedin: data.linkedin || undefined,
+        github: data.github || undefined,
+      },
+    };
+  } catch {
+    return { fields: {} };
+  }
+}
+
 export async function uploadResumeAction(formData: FormData) {
   const user = await requireUser();
   const file = formData.get("resume") as File | null;

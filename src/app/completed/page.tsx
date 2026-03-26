@@ -7,13 +7,18 @@ import { deleteApplicationAction } from "./actions";
 export default async function CompletedPage() {
   const user = await requireActiveUser();
 
-  const applied = await db.query.applications.findMany({
-    where: and(
-      eq(applications.userId, user.id),
-      eq(applications.status, "applied"),
-    ),
-    orderBy: desc(applications.updatedAt),
-  });
+  let applied: (typeof applications)["$inferSelect"][] = [];
+  try {
+    applied = await db.query.applications.findMany({
+      where: and(
+        eq(applications.userId, user.id),
+        eq(applications.status, "applied"),
+      ),
+      orderBy: desc(applications.updatedAt),
+    });
+  } catch (err) {
+    console.error("[CompletedPage] DB error:", err instanceof Error ? err.message : String(err));
+  }
 
   return (
     <AppShell active="/completed" user={user}>

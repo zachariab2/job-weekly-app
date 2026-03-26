@@ -7,11 +7,16 @@ import { createReferralCodeAction, startCheckoutSession } from "../billing/actio
 export default async function SettingsPage() {
   const user = await requireActiveUser();
 
-  const [subscription, codes, notifPrefs] = await Promise.all([
-    db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) }),
-    db.query.referralCodes.findMany({ where: eq(referralCodes.ownerUserId, user.id) }),
-    db.query.notificationPreferences.findFirst({ where: eq(notificationPreferences.userId, user.id) }),
-  ]);
+  let subscription = null, codes: (typeof referralCodes)["$inferSelect"][] = [], notifPrefs = null;
+  try {
+    [subscription, codes, notifPrefs] = await Promise.all([
+      db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) }),
+      db.query.referralCodes.findMany({ where: eq(referralCodes.ownerUserId, user.id) }),
+      db.query.notificationPreferences.findFirst({ where: eq(notificationPreferences.userId, user.id) }),
+    ]);
+  } catch (err) {
+    console.error("[SettingsPage] DB error:", err instanceof Error ? err.message : String(err));
+  }
 
   const completedCodes = codes.filter((c) => Boolean(c.redeemedAt));
   const progressToNext = completedCodes.length % 3;

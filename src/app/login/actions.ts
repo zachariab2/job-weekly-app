@@ -7,7 +7,7 @@ import { createSession, destroySession, verifyPassword } from "@/lib/auth/sessio
 import { redirect } from "next/navigation";
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform((v) => v.trim().toLowerCase()),
   password: z.string().min(1),
 });
 

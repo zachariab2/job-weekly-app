@@ -122,20 +122,33 @@ REASON: <sentence>
 
 // ─── TTL ──────────────────────────────────────────────────────────────────────
 
-const REPORT_TTL_MS = 1000 * 60 * 60 * 24 * 3; // 3 days
+export const REPORT_TTL_MS = 1000 * 60 * 60 * 24 * 3; // 3 days
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+/**
+ * Read the latest report from DB only. Never blocks on generation.
+ * Returns null if no report exists yet.
+ */
+export async function getLatestReport(userId: string) {
+  try {
+    return await db.query.reports.findFirst({
+      where: eq(reports.userId, userId),
+      orderBy: desc(reports.generatedAt),
+      with: {
+        recommendations: true,
+        networking: true,
+        resumeRecommendations: true,
+      },
+    }) ?? null;
+  } catch (err) {
+    console.error("[getLatestReport] DB query failed:", err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
 export async function getOrCreateReport(userId: string) {
-  const existing = await db.query.reports.findFirst({
-    where: eq(reports.userId, userId),
-    orderBy: desc(reports.generatedAt),
-    with: {
-      recommendations: true,
-      networking: true,
-      resumeRecommendations: true,
-    },
-  });
+  const existing = await getLatestReport(userId);
 
   if (existing && existing.generatedAt && existing.generatedAt.getTime() > Date.now() - REPORT_TTL_MS) {
     return existing;
@@ -149,9 +162,6 @@ export async function getOrCreateReport(userId: string) {
  * user's reports, newest first, deduplicated by company+role.
  */
 export async function getAllActiveJobsForUser(userId: string) {
-  // Trigger a refresh if it's been 3+ days (swallow errors — show empty state instead of crashing)
-  try { await getOrCreateReport(userId); } catch { /* non-fatal */ }
-
   let queryResult;
   try {
     queryResult = await Promise.all([
@@ -174,14 +184,14 @@ export async function getAllActiveJobsForUser(userId: string) {
   }
   const [userReports, userApplications] = queryResult;
 
-  const appliedKeys = new Set(
+  const hiddenKeys = new Set(
     userApplications
-      .filter((a) => a.status === "applied")
+      .filter((a) => a.status === "applied" || a.status === "dismissed")
       .map((a) => `${a.company}||${a.role}`),
   );
   const statusMap = new Map(
     userApplications
-      .filter((a) => a.status !== "applied")
+      .filter((a) => !["applied", "dismissed"].includes(a.status ?? ""))
       .map((a) => [`${a.company}||${a.role}`, a.status]),
   );
 
@@ -196,7 +206,7 @@ export async function getAllActiveJobsForUser(userId: string) {
   for (const report of userReports) {
     for (const rec of report.recommendations) {
       const key = `${rec.company}||${rec.role}`;
-      if (seen.has(key) || appliedKeys.has(key)) continue;
+      if (seen.has(key) || hiddenKeys.has(key)) continue;
       seen.add(key);
       rows.push({
         rec,
@@ -309,7 +319,7 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
 
   // Fetch real jobs from JSearch; fall back to catalog if unavailable
   const searchQuery = `${targetRole} internship ${industries}`;
-  const jsearchJobs = await fetchJSearchJobs(searchQuery, 10);
+  const jsearchJobs = await fetchJSearchJobs(searchQuery, 5);
 
   let jobData: Array<{
     company: string;
@@ -320,16 +330,17 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
 
   const validJobs = jsearchJobs.filter((j) => j.employer_name && j.job_title);
 
-  if (validJobs.length >= 5) {
-    jobData = validJobs.map((j) => ({
+  if (validJobs.length >= 1) {
+    // Use real JSearch results — even a partial set is better than hardcoded
+    jobData = validJobs.slice(0, 5).map((j) => ({
       company: j.employer_name,
       role: j.job_title,
       jobUrl: j.job_apply_link,
       description: j.job_description ?? "",
     }));
   } else {
-    // Catalog fallback
-    jobData = getSuggestionPool(prefs).slice(0, 10).map((entry) => ({
+    // Catalog fallback — only if JSearch is down or returned nothing
+    jobData = getSuggestionPool(prefs).slice(0, 5).map((entry) => ({
       company: entry.company,
       role: entry.role,
       jobUrl: entry.jobUrl,
@@ -382,7 +393,8 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     })),
   );
 
-  const summary = `${user.firstName ?? "You"} matched for ${targetRole} roles. ${applications.length} applications logged. Jobs refresh every 3 days.`;
+  const missingContactCount = enrichedJobs.filter((job) => job.contacts.length === 0).length;
+  const summary = `${user.firstName ?? "You"} matched for ${targetRole} roles. ${applications.length} applications logged. Jobs refresh every 3 days. ${missingContactCount}/${enrichedJobs.length} roles need manual contact entry.`;
 
   return { reportId, summary, recommendations: enrichedJobs, resume, outreach, reasoningByCompany };
 }

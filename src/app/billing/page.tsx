@@ -13,8 +13,15 @@ type BillingPageProps = {
 export default async function BillingPage({ searchParams }: BillingPageProps) {
   const user = await requireUser();
   const resolvedParams = await searchParams;
-  const subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
-  const codes = await db.query.referralCodes.findMany({ where: eq(referralCodes.ownerUserId, user.id) });
+  let subscription = null, codes: (typeof referralCodes)["$inferSelect"][] = [];
+  try {
+    [subscription, codes] = await Promise.all([
+      db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) }),
+      db.query.referralCodes.findMany({ where: eq(referralCodes.ownerUserId, user.id) }),
+    ]);
+  } catch (err) {
+    console.error("[BillingPage] DB error:", err instanceof Error ? err.message : String(err));
+  }
   const completedCodes = codes.filter((code) => Boolean(code.redeemedAt));
   const pendingCodes = codes.filter((code) => code.redeemedByUserId && !code.redeemedAt);
   const earnedWeeks = Math.floor(completedCodes.length / 3);

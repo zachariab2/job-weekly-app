@@ -5,10 +5,15 @@ import { eq } from "drizzle-orm";
 
 export default async function ProfilePage() {
   const user = await requireActiveUser();
-  const [profile, prefs] = await Promise.all([
-    db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) }),
-    db.query.jobPreferences.findFirst({ where: eq(jobPreferences.userId, user.id) }),
-  ]);
+  let profile = null, prefs = null;
+  try {
+    [profile, prefs] = await Promise.all([
+      db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) }),
+      db.query.jobPreferences.findFirst({ where: eq(jobPreferences.userId, user.id) }),
+    ]);
+  } catch (err) {
+    console.error("[ProfilePage] DB error:", err instanceof Error ? err.message : String(err));
+  }
 
   return (
     <AppShell active="/profile" user={user}>
