@@ -3,6 +3,7 @@ import { db, subscriptions, reports } from "@/lib/db";
 import { inArray, eq, desc } from "drizzle-orm";
 import { generateReportForUser } from "@/lib/services/report-service";
 import { REPORT_TTL_MS } from "@/lib/services/report-service";
+import { notifyFreshBatchIfNeeded } from "@/lib/notifications";
 
 // Give the cron job plenty of time — it runs sequentially per user
 export const maxDuration = 300;
@@ -21,7 +22,12 @@ export async function GET(req: NextRequest) {
     where: inArray(subscriptions.status, ["active", "trialing"]),
   });
 
-  const results: { userId: string; status: "refreshed" | "skipped" | "error" }[] = [];
+  const results: {
+    userId: string;
+    status: "refreshed" | "skipped" | "error";
+    newJobs?: number;
+    notified?: { attempted: boolean; emailSent: boolean; smsSent: boolean; reason?: string };
+  }[] = [];
 
   for (const sub of activeSubs) {
     try {
@@ -41,14 +47,31 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      await generateReportForUser(sub.userId);
-      results.push({ userId: sub.userId, status: "refreshed" });
+      const report = await generateReportForUser(sub.userId);
+      const newJobs = report.recommendations?.length ?? 0;
+
+      const notified = await notifyFreshBatchIfNeeded({
+        userId: sub.userId,
+        newJobCount: newJobs,
+        totalActiveJobs: newJobs,
+      });
+
+      results.push({ userId: sub.userId, status: "refreshed", newJobs, notified });
     } catch (err) {
       console.error(`[cron] failed for user ${sub.userId}:`, err instanceof Error ? err.message : String(err));
       results.push({ userId: sub.userId, status: "error" });
     }
   }
 
-  console.log("[cron/refresh-reports]", JSON.stringify(results));
-  return NextResponse.json({ ok: true, results });
+  const summary = {
+    totalUsers: activeSubs.length,
+    refreshed: results.filter((r) => r.status === "refreshed").length,
+    skipped: results.filter((r) => r.status === "skipped").length,
+    errors: results.filter((r) => r.status === "error").length,
+    emailsSent: results.filter((r) => r.notified?.emailSent).length,
+    smsSent: results.filter((r) => r.notified?.smsSent).length,
+  };
+
+  console.log("[cron/refresh-reports]", JSON.stringify({ summary, results }));
+  return NextResponse.json({ ok: true, summary, results });
 }

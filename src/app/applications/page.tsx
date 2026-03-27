@@ -81,6 +81,11 @@ export default async function ApplicationsPage() {
                   <p className="font-semibold text-white">{rec.company}</p>
                 )}
                 <p className="text-sm text-white/50">{rec.role}</p>
+                {contacts.length === 0 && (
+                  <span className="inline-flex mt-1 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">
+                    Needs manual contact
+                  </span>
+                )}
                 <p className="text-xs text-white/30 leading-relaxed mt-2">{rec.reasoning}</p>
               </div>
 

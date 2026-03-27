@@ -3,6 +3,8 @@ import { requireActiveUser } from "@/lib/auth/session";
 import { db, subscriptions, referralCodes, notificationPreferences } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "../billing/actions";
+import { updateNotificationPrefsAction } from "./actions";
+import Link from "next/link";
 
 export default async function SettingsPage() {
   const user = await requireActiveUser();
@@ -24,6 +26,12 @@ export default async function SettingsPage() {
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
     : null;
 
+  const ownerAllowlist = (process.env.OWNER_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const isOwner = ownerAllowlist.includes((user.email ?? "").toLowerCase());
+
   return (
     <AppShell active="/settings" user={user}>
       <div>
@@ -33,19 +41,68 @@ export default async function SettingsPage() {
 
       <div className="space-y-3">
 
+        {isOwner && (
+          <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-widest text-emerald-200/80">Owner Tools</p>
+              <p className="text-sm text-emerald-100/90 mt-1">Manage client profiles, preferences, notifications, and manual contacts.</p>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/admin/users" className="rounded-xl border border-emerald-300/40 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-500/20">
+                Users
+              </Link>
+              <Link href="/admin/contacts" className="rounded-xl border border-emerald-300/40 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-500/20">
+                Contacts
+              </Link>
+              <Link href="/admin/audit" className="rounded-xl border border-emerald-300/40 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-500/20">
+                Audit
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Notifications */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <form action={updateNotificationPrefsAction} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <p className="text-[11px] uppercase tracking-widest text-white/30 mb-4">Notifications</p>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Weekly digest day" value={notifPrefs?.digestDay ?? "Tuesday"} />
-            <Field label="Digest time" value={notifPrefs?.digestTime ?? "7:00 AM"} />
-            <Field label="Timezone" value={notifPrefs?.timezone ?? "America/New_York"} />
+          <p className="text-xs text-white/40 mb-4">Get notified every 3 days when your fresh batch of jobs is ready.</p>
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="emailEnabled"
+                defaultChecked={notifPrefs?.emailEnabled ?? false}
+                className="size-4 rounded accent-[var(--accent-strong)]"
+              />
+              <span className="text-sm text-white/80">Email notifications</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="smsEnabled"
+                defaultChecked={notifPrefs?.smsEnabled ?? false}
+                className="size-4 rounded accent-[var(--accent-strong)]"
+              />
+              <span className="text-sm text-white/80">SMS notifications</span>
+            </label>
+            {(notifPrefs?.smsEnabled) && (
+              <div className="pl-7">
+                <input
+                  type="tel"
+                  name="phone"
+                  defaultValue={notifPrefs?.phone ?? ""}
+                  placeholder="+1 (555) 000-0000"
+                  className="w-full max-w-xs rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/20"
+                />
+              </div>
+            )}
           </div>
-          <div className="mt-4 flex gap-4 text-sm">
-            <Label active={notifPrefs?.emailEnabled ?? true} text="Email" />
-            <Label active={notifPrefs?.smsEnabled ?? true} text="SMS" />
-          </div>
-        </div>
+          <button
+            type="submit"
+            className="mt-5 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+          >
+            Save
+          </button>
+        </form>
 
         {/* Job filters */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -119,23 +176,5 @@ export default async function SettingsPage() {
 
       </div>
     </AppShell>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[11px] uppercase tracking-wider text-white/30 mb-1">{label}</p>
-      <p className="text-sm text-white">{value}</p>
-    </div>
-  );
-}
-
-function Label({ active, text }: { active: boolean; text: string }) {
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs ${active ? "text-white/70" : "text-white/25"}`}>
-      <span className={`size-1.5 rounded-full ${active ? "bg-[var(--accent-strong)]" : "bg-white/20"}`} />
-      {text}
-    </span>
   );
 }

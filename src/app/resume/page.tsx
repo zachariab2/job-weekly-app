@@ -17,7 +17,7 @@ export default async function ResumePage() {
           <p className="text-xs uppercase tracking-[0.3em] text-white/50">Resume vault</p>
           <h1 className="text-3xl font-semibold text-white">Tailored resumes</h1>
         </div>
-        <Button>Upload resume</Button>
+        <Button asChild><a href="/api/resume/download">Download current resume</a></Button>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         {resumeRecommendations.length === 0 && (
@@ -40,8 +40,8 @@ export default async function ResumePage() {
                   <p className="text-base font-semibold text-white">{entry.company}</p>
                   <p className="text-xs text-white/50">Updated {report?.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : "recently"}</p>
                 </div>
-                <Button variant="secondary" size="sm">
-                  Download
+                <Button variant="secondary" size="sm" asChild>
+                  <a href="/api/resume/download">Download</a>
                 </Button>
               </div>
               <div className="space-y-2 text-sm text-white/70">

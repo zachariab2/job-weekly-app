@@ -13,6 +13,7 @@ import {
 import { v4 as uuid } from "uuid";
 import OpenAI from "openai";
 import { readFile } from "fs/promises";
+import { loadManualContacts, type ManualContact } from "@/lib/manual-contacts";
 
 // Lazy OpenAI client — do NOT initialize at module level.
 // The OpenAI constructor throws if OPENAI_API_KEY is missing, which would crash
@@ -348,15 +349,18 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     }));
   }
 
-  // Enrich each job with catalog contacts (matched by company name)
+  const manualContacts = await loadManualContacts();
+
+  // Enrich each job with contacts (catalog + manual ops list)
   const enrichedJobs = jobData.map((job) => {
     const catalogEntry = catalog.find(
       (c) => c.company.toLowerCase() === job.company.toLowerCase(),
     );
+    const opsContacts = getManualContactsForJob(job.company, job.role, manualContacts);
     return {
       ...job,
       resumeFocus: catalogEntry?.resumeFocus ?? [],
-      contacts: catalogEntry?.contacts ?? [],
+      contacts: [...(catalogEntry?.contacts ?? []), ...opsContacts],
     };
   });
 
@@ -499,6 +503,25 @@ function getSuggestionPool(prefs: typeof jobPreferences.$inferSelect | null) {
   );
   if (matches.length >= 3) return matches.slice(0, 10);
   return [...matches, ...catalog].slice(0, 10);
+}
+
+function getManualContactsForJob(company: string, role: string, manualContacts: ManualContact[]): Contact[] {
+  const c = company.toLowerCase();
+  const r = role.toLowerCase();
+
+  return manualContacts
+    .filter((entry) => {
+      if (entry.company.toLowerCase() !== c) return false;
+      if (!entry.role) return true;
+      return entry.role.toLowerCase() === r;
+    })
+    .map((entry) => ({
+      name: entry.name,
+      role: entry.role ?? "Referral contact",
+      connectionBasis: entry.connectionBasis ?? "Manual client contact",
+      contactEmail: entry.contactEmail,
+      contactLinkedin: entry.contactLinkedin,
+    }));
 }
 
 function generateSnippet(

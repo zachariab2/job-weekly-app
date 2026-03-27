@@ -96,3 +96,18 @@ export async function requireActiveUser() {
 
   return user;
 }
+
+export async function requireOwner() {
+  const user = await requireUser();
+  const raw = process.env.OWNER_EMAILS ?? "";
+  const allowlist = raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!allowlist.includes((user.email ?? "").toLowerCase())) {
+    redirect("/applications");
+  }
+
+  return user;
+}
