@@ -218,23 +218,40 @@ export async function completeOnboarding(payload: Record<string, string | undefi
   const stripe = getStripeClient();
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer_email: user.email,
-    metadata: { userId: user.id },
-    subscription_data: {
+  const weeklyPriceId = process.env.STRIPE_WEEKLY_PRICE_ID;
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer_email: user.email,
       metadata: { userId: user.id },
-    },
-    line_items: [{
-      quantity: 1,
-      price: "price_1TFzVBB6PfSttn4KE3GoxU5B",
-    }],
-    allow_promotion_codes: true,
-    success_url: `${appUrl}/applications?welcome=1`,
-    cancel_url: `${appUrl}/onboarding`,
-  });
+      subscription_data: {
+        metadata: { userId: user.id },
+      },
+      line_items: weeklyPriceId
+        ? [{ quantity: 1, price: weeklyPriceId }]
+        : [{
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: 999,
+              recurring: { interval: "week" },
+              product_data: {
+                name: "JobWeekly Weekly Membership",
+                description: "Premium job search operating system",
+              },
+            },
+          }],
+      allow_promotion_codes: true,
+      success_url: `${appUrl}/applications?welcome=1`,
+      cancel_url: `${appUrl}/onboarding`,
+    });
 
-  if (!session.url) return { status: "error" as const, message: "Could not start checkout. Try again." };
+    if (!session.url) return { status: "error" as const, message: "Could not start checkout. Try again." };
 
-  redirect(session.url);
+    redirect(session.url);
+  } catch (err) {
+    console.error("[completeOnboarding] Stripe checkout error:", err instanceof Error ? err.message : String(err));
+    return { status: "error" as const, message: "Could not start checkout. Check Stripe price/env config and try again." };
+  }
 }

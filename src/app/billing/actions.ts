@@ -9,6 +9,7 @@ import { requireUser } from "@/lib/auth/session";
 import { getStripeClient } from "@/lib/payments/stripe";
 
 const SUBSCRIPTION_PRICE_CENTS = 999;
+const WEEKLY_PRICE_ID = process.env.STRIPE_WEEKLY_PRICE_ID;
 
 export async function createReferralCodeAction(): Promise<void> {
   const user = await requireUser();
@@ -44,34 +45,42 @@ export async function startCheckoutSession() {
   const stripe = getStripeClient();
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer_email: user.email,
-    metadata: { userId: user.id },
-    subscription_data: {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer_email: user.email,
       metadata: { userId: user.id },
-    },
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: SUBSCRIPTION_PRICE_CENTS,
-          recurring: { interval: "week" },
-          product_data: {
-            name: "JobWeekly Weekly Membership",
-            description: "Premium job search operating system",
-          },
-        },
+      subscription_data: {
+        metadata: { userId: user.id },
       },
-    ],
-    success_url: `${appUrl}/billing?checkout=success`,
-    cancel_url: `${appUrl}/billing?checkout=cancel`,
-  });
+      line_items: WEEKLY_PRICE_ID
+        ? [{ quantity: 1, price: WEEKLY_PRICE_ID }]
+        : [
+            {
+              quantity: 1,
+              price_data: {
+                currency: "usd",
+                unit_amount: SUBSCRIPTION_PRICE_CENTS,
+                recurring: { interval: "week" },
+                product_data: {
+                  name: "JobWeekly Weekly Membership",
+                  description: "Premium job search operating system",
+                },
+              },
+            },
+          ],
+      allow_promotion_codes: true,
+      success_url: `${appUrl}/billing?checkout=success`,
+      cancel_url: `${appUrl}/billing?checkout=cancel`,
+    });
 
-  if (!session.url) {
-    throw new Error("Stripe Checkout session missing URL");
+    if (!session.url) {
+      throw new Error("Stripe Checkout session missing URL");
+    }
+
+    redirect(session.url);
+  } catch (err) {
+    console.error("[startCheckoutSession] Stripe checkout error:", err instanceof Error ? err.message : String(err));
+    redirect("/billing?checkout=cancel");
   }
-
-  redirect(session.url);
 }

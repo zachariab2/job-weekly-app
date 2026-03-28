@@ -286,26 +286,32 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 5: Free trial */}
+        {/* Step 5: Checkout */}
         {step === 5 && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Start your free trial</h1>
-              <p className="mt-1 text-sm text-white/50">7 days free — card required but nothing charged until trial ends.</p>
+              <h1 className="text-2xl font-semibold text-white">Let&apos;s get you a job.</h1>
+              <p className="mt-1 text-sm text-white/50">Your first batch drops within minutes. $9.99/week — cancel anytime.</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.04] p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-white">JobWeekly membership</p>
-                  <p className="text-xs text-white/40 mt-0.5">Free for 7 days, then $9.99/week</p>
+                  <p className="text-xs text-white/40 mt-0.5">Billed weekly · cancel from settings anytime</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-semibold text-white">$0</p>
-                  <p className="text-xs text-white/35">today</p>
+                  <p className="text-xl font-semibold text-white">$9.99</p>
+                  <p className="text-xs text-white/35">per week</p>
                 </div>
               </div>
               <ul className="space-y-2 text-xs text-white/50 pt-2 border-t border-white/5">
-                {["Curated CS jobs, updated constantly", "Alumni + similar-background referral contacts with contact info", "AI resume tweaks per application", "SMS + email notifications you control", "Cancel anytime before trial ends"].map((item) => (
+                {[
+                  "5 curated roles matched to your profile, refreshed every 3 days",
+                  "Alumni referral paths with contact info",
+                  "Resume bullets rewritten per company",
+                  "Outreach templates ready to send",
+                  "Email + SMS alerts when your batch drops",
+                ].map((item) => (
                   <li key={item} className="flex gap-2">
                     <span className="text-[var(--accent-strong)] shrink-0">✓</span>
                     {item}
@@ -313,7 +319,7 @@ export default function OnboardingPage() {
                 ))}
               </ul>
               <p className="text-[11px] text-white/25 pt-2">
-                You&apos;ll enter card details on Stripe&apos;s secure checkout. We won&apos;t charge until day 8.
+                You&apos;ll complete payment on Stripe&apos;s secure checkout. Have a promo code? You can enter it there.
               </p>
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
@@ -334,7 +340,7 @@ export default function OnboardingPage() {
             </Button>
           ) : (
             <Button onClick={submit} disabled={isPending}>
-              {isPending ? "Setting up…" : "Start free trial →"}
+              {isPending ? "Setting up…" : "Get my jobs →"}
             </Button>
           )}
         </div>
