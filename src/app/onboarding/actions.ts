@@ -220,6 +220,7 @@ export async function completeOnboarding(payload: Record<string, string | undefi
 
   const weeklyPriceId = process.env.STRIPE_WEEKLY_PRICE_ID;
 
+  let checkoutUrl: string;
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -249,9 +250,11 @@ export async function completeOnboarding(payload: Record<string, string | undefi
 
     if (!session.url) return { status: "error" as const, message: "Could not start checkout. Try again." };
 
-    redirect(session.url);
+    checkoutUrl = session.url;
   } catch (err) {
     console.error("[completeOnboarding] Stripe checkout error:", err instanceof Error ? err.message : String(err));
     return { status: "error" as const, message: "Could not start checkout. Check Stripe price/env config and try again." };
   }
+
+  redirect(checkoutUrl);
 }
