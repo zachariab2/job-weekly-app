@@ -7,11 +7,16 @@ import { getStripeClient } from "@/lib/payments/stripe";
 import { db, subscriptions } from "@/lib/db";
 import { finalizeReferralIfPresent } from "@/lib/services/referral-service";
 
-const stripe = getStripeClient();
-
 export async function POST(req: Request) {
   const signature = req.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let stripe: Stripe;
+  try {
+    stripe = getStripeClient();
+  } catch {
+    return NextResponse.json({ error: "Stripe webhook misconfigured" }, { status: 500 });
+  }
 
   if (!signature || !webhookSecret) {
     return NextResponse.json({ error: "Stripe webhook misconfigured" }, { status: 400 });

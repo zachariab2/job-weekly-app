@@ -10,18 +10,18 @@ export function ConversionFooter() {
           Your next referral is one batch away.
         </h2>
         <p className="text-base text-white/60">
-          7-day free trial. Cancel anytime. Your first report lands in minutes after onboarding.
+          Cancel anytime. Your first report lands within minutes of signing up.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <Button size="lg" asChild>
-            <Link href="/signup">Start free trial</Link>
+            <Link href="/signup">Join now</Link>
           </Button>
           <Button variant="secondary" size="lg" asChild>
             <Link href="#report">See sample report</Link>
           </Button>
         </div>
         <p className="text-xs text-white/25 pt-2">
-          No credit card anxiety · cancel from settings in one click · referrals earn free weeks
+          $9.99/week · cancel from settings in one click · referrals earn free weeks
         </p>
       </div>
       <div className="pointer-events-none absolute inset-0 -z-10">

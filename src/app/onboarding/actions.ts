@@ -215,7 +215,6 @@ export async function completeOnboarding(payload: Record<string, string | undefi
   const existing = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
   if (existing?.status === "active") redirect("/applications");
 
-  // Launch Stripe checkout with 7-day free trial
   const stripe = getStripeClient();
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
 
@@ -224,7 +223,6 @@ export async function completeOnboarding(payload: Record<string, string | undefi
     customer_email: user.email,
     metadata: { userId: user.id },
     subscription_data: {
-      trial_period_days: 7,
       metadata: { userId: user.id },
     },
     line_items: [{
@@ -235,7 +233,7 @@ export async function completeOnboarding(payload: Record<string, string | undefi
         recurring: { interval: "week" },
         product_data: {
           name: "JobWeekly — $9.99/week",
-          description: "Curated CS jobs, referral contacts, and AI resume tweaks. 7-day free trial.",
+          description: "Curated CS jobs, referral contacts, and AI resume tweaks. Cancel anytime.",
         },
       },
     }],

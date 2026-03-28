@@ -70,7 +70,7 @@ export function ReportPreview() {
           <Card className="border-dashed border-white/15 bg-transparent text-center space-y-3 py-6">
             <p className="text-sm text-white/50">Your real report includes resume rewrites, Slack/email contacts, and more.</p>
             <Button asChild>
-              <Link href="/signup">Start free trial</Link>
+              <Link href="/signup">Join now</Link>
             </Button>
           </Card>
         </div>

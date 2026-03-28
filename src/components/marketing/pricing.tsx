@@ -9,7 +9,7 @@ export function Pricing() {
       <SectionHeading
         eyebrow="PRICING"
         title="$9.99 per week"
-        description="7-day free trial, no credit card anxiety — every three referrals you send still earns a free week."
+        description="Cancel anytime — every three referrals you send still earns a free week."
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -17,7 +17,7 @@ export function Pricing() {
             <div className="shrink-0">
               <p className="text-sm text-white/60">For students</p>
               <p className="text-4xl font-semibold text-white">$9.99</p>
-              <p className="text-sm text-white/50">per week · 7-day free trial</p>
+              <p className="text-sm text-white/50">per week · cancel anytime</p>
               <p className="mt-3 text-xs text-white/40 max-w-[200px] leading-relaxed">
                 One referral that converts to an interview is worth 100× this. Most students see ROI in week one.
               </p>
@@ -38,7 +38,7 @@ export function Pricing() {
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
             <Button size="lg" asChild>
-              <Link href="/signup">Start free trial</Link>
+              <Link href="/signup">Join now</Link>
             </Button>
             <Button variant="secondary" size="lg" asChild>
               <Link href="#how">Explore how it works</Link>
