@@ -10,7 +10,7 @@ const url = rawUrl.startsWith("libsql://") ? rawUrl.replace("libsql://", "https:
 
 let client: ReturnType<typeof createClient>;
 try {
-  client = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN });
+  client = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN?.trim() });
 } catch (err) {
   console.error("[db] createClient failed at module load:", err instanceof Error ? err.message : String(err), "url:", url.slice(0, 40));
   // Provide a stub so the module doesn't crash — queries will throw at call time
