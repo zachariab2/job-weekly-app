@@ -4,16 +4,18 @@ import { join } from "node:path";
 import * as schema from "./schema";
 
 // Force HTTP transport in production: replace `libsql://` with `https://`.
-// WebSocket transport can silently die on idle Vercel serverless instances,
-// causing every DB query to throw on the next warm request. HTTP is stateless
-// and reliable for serverless.
+// WebSocket transport can silently die on idle Vercel serverless instances.
 const rawUrl = process.env.TURSO_DATABASE_URL ?? `file:${join(process.cwd(), "data", "main.sqlite")}`;
 const url = rawUrl.startsWith("libsql://") ? rawUrl.replace("libsql://", "https://") : rawUrl;
 
-const client = createClient({
-  url,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+let client: ReturnType<typeof createClient>;
+try {
+  client = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN });
+} catch (err) {
+  console.error("[db] createClient failed at module load:", err instanceof Error ? err.message : String(err), "url:", url.slice(0, 40));
+  // Provide a stub so the module doesn't crash — queries will throw at call time
+  client = createClient({ url: "file::memory:", authToken: undefined });
+}
 
 export const db = drizzle(client, { schema });
 export * from "./schema";
