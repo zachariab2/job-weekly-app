@@ -83,7 +83,7 @@ export async function uploadResumeAction(formData: FormData) {
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     // Production: store in Vercel Blob
-    const blob = await put(`resumes/${user.id}.pdf`, file, { access: "private" });
+    const blob = await put(`resumes/${user.id}.pdf`, file, { access: "private", allowOverwrite: true });
     resumeUrl = blob.url;
   } else {
     // Development: store locally
