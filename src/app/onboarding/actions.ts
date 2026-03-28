@@ -227,16 +227,9 @@ export async function completeOnboarding(payload: Record<string, string | undefi
     },
     line_items: [{
       quantity: 1,
-      price_data: {
-        currency: "usd",
-        unit_amount: 999,
-        recurring: { interval: "week" },
-        product_data: {
-          name: "JobWeekly — $9.99/week",
-          description: "Curated CS jobs, referral contacts, and AI resume tweaks. Cancel anytime.",
-        },
-      },
+      price: "price_1TFzVBB6PfSttn4KE3GoxU5B",
     }],
+    allow_promotion_codes: true,
     success_url: `${appUrl}/applications?welcome=1`,
     cancel_url: `${appUrl}/onboarding`,
   });
