@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth/session";
 import { db, subscriptions, referralCodes } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "./actions";
+import { redirect } from "next/navigation";
 
 type BillingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -22,6 +23,12 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   } catch (err) {
     console.error("[BillingPage] DB error:", err instanceof Error ? err.message : String(err));
   }
+  // If checkout just completed and subscription is now active, go straight to the app
+  const isCheckoutSuccess = typeof resolvedParams?.checkout === "string" && resolvedParams.checkout === "success";
+  if (isCheckoutSuccess && subscription?.status === "active") {
+    redirect("/applications");
+  }
+
   const completedCodes = codes.filter((code) => Boolean(code.redeemedAt));
   const pendingCodes = codes.filter((code) => code.redeemedByUserId && !code.redeemedAt);
   const earnedWeeks = Math.floor(completedCodes.length / 3);

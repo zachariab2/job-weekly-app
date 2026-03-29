@@ -250,7 +250,7 @@ export async function completeOnboarding(payload: Record<string, string | undefi
             },
           }],
       allow_promotion_codes: true,
-      success_url: `${appUrl}/applications?welcome=1`,
+      success_url: `${appUrl}/billing?checkout=success`,
       cancel_url: `${appUrl}/onboarding`,
     });
 
