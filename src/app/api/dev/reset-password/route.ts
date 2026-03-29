@@ -19,5 +19,10 @@ export async function GET(req: Request) {
   const hash = hashPassword(password);
   await db.update(users).set({ passwordHash: hash }).where(eq(users.email, email));
 
-  return NextResponse.json({ ok: true });
+  // Verify the round-trip
+  const updated = await db.query.users.findFirst({ where: eq(users.email, email) });
+  const { verifyPassword } = await import("@/lib/auth/session");
+  const verified = verifyPassword(password, updated?.passwordHash ?? null);
+
+  return NextResponse.json({ ok: true, found: !!updated, email: updated?.email, verified });
 }
