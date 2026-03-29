@@ -203,6 +203,12 @@ export async function completeOnboarding(payload: Record<string, string | undefi
 
   const data = parsed.data as Record<string, string>;
 
+  // Require resume upload before proceeding
+  const existingProfile = await db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) });
+  if (!existingProfile?.resumeUrl) {
+    return { status: "error" as const, message: "Please upload your resume before continuing." };
+  }
+
   await db.update(users)
     .set({ firstName: data.firstName, lastName: data.lastName })
     .where(eq(users.id, user.id));

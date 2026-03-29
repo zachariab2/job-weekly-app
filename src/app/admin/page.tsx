@@ -1,5 +1,5 @@
 import { requireOwner } from "@/lib/auth/session";
-import { db, users, subscriptions, reports } from "@/lib/db";
+import { db, users, subscriptions, reports, profiles } from "@/lib/db";
 import { desc } from "drizzle-orm";
 import { AddContactForm } from "./add-contact-form";
 import { deleteContactAction } from "./actions";
@@ -7,16 +7,18 @@ import { deleteContactAction } from "./actions";
 export default async function AdminPage() {
   await requireOwner();
 
-  const [allUsers, allSubs, allReports] = await Promise.all([
+  const [allUsers, allSubs, allReports, allProfiles] = await Promise.all([
     db.query.users.findMany({ orderBy: desc(users.createdAt) }),
     db.query.subscriptions.findMany(),
     db.query.reports.findMany({
       orderBy: desc(reports.generatedAt),
       with: { recommendations: true, networking: true },
     }),
+    db.query.profiles.findMany(),
   ]);
 
   const subMap = new Map(allSubs.map((s) => [s.userId, s]));
+  const profileMap = new Map(allProfiles.map((p) => [p.userId, p]));
 
   // Latest report per user
   const latestReportMap = new Map<string, typeof allReports[0]>();
@@ -28,6 +30,7 @@ export default async function AdminPage() {
     user,
     sub: subMap.get(user.id),
     report: latestReportMap.get(user.id),
+    profile: profileMap.get(user.id),
   }));
 
   const activeCount = allSubs.filter((s) => s.status === "active").length;
@@ -58,7 +61,7 @@ export default async function AdminPage() {
       )}
 
       <div className="space-y-6">
-        {rows.map(({ user, sub, report }) => {
+        {rows.map(({ user, sub, report, profile }) => {
           const statusColor =
             sub?.status === "active" ? "bg-green-500/15 text-green-400 border-green-500/30" :
             sub?.status === "pending" ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" :
@@ -84,6 +87,20 @@ export default async function AdminPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Resume */}
+              {profile?.resumeUrl ? (
+                <a
+                  href={`/api/admin/resume/${user.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition"
+                >
+                  View Resume PDF ↗
+                </a>
+              ) : (
+                <p className="text-xs text-white/25 italic">No resume uploaded</p>
+              )}
 
               {/* Jobs */}
               {report ? (
