@@ -69,9 +69,9 @@ export async function getSessionUser() {
 }
 
 
-export async function requireUser() {
+export async function requireUser(next?: string) {
   const user = await getSessionUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
   return user;
 }
 
@@ -98,7 +98,7 @@ export async function requireActiveUser() {
 }
 
 export async function requireOwner() {
-  const user = await requireUser();
+  const user = await requireUser("/admin");
   const raw = process.env.OWNER_EMAILS ?? "";
   const allowlist = raw
     .split(",")
