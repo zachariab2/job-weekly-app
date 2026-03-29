@@ -7,11 +7,12 @@ import Link from "next/link";
 
 const initialState = { error: undefined as string | undefined };
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, formAction] = useActionState(loginAction, initialState);
 
   return (
     <form className="space-y-4" action={formAction}>
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="space-y-2 text-sm text-white/70">
         <span>Email</span>
         <input

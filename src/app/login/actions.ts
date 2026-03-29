@@ -27,7 +27,9 @@ export async function loginAction(_: LoginResult, formData: FormData): Promise<L
   }
 
   await createSession(user.id);
-  redirect("/dashboard");
+  const next = formData.get("next");
+  const safePath = typeof next === "string" && next.startsWith("/") ? next : "/applications";
+  redirect(safePath);
 }
 
 export async function logoutAction() {

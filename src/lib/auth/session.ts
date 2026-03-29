@@ -106,7 +106,7 @@ export async function requireOwner() {
     .filter(Boolean);
 
   if (!allowlist.includes((user.email ?? "").toLowerCase())) {
-    redirect("/login");
+    redirect("/login?next=/admin");
   }
 
   return user;
