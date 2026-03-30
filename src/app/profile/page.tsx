@@ -30,19 +30,19 @@ export default async function ProfilePage() {
             <div className="flex items-start gap-4">
               {profile?.resumeUrl && (
                 <a href="/api/resume/download" target="_blank" rel="noreferrer" className="shrink-0 group">
-                  <div className="w-14 h-[72px] rounded-lg border border-white/15 bg-white/[0.06] hover:border-white/30 hover:bg-white/[0.09] transition overflow-hidden flex flex-col px-2 pt-2 pb-1.5 gap-1">
+                  <div className="w-14 h-[72px] rounded-lg border border-white/20 bg-white hover:bg-white/90 transition overflow-hidden flex flex-col px-2 pt-2 pb-1.5 gap-1 shadow-sm">
                     {/* Mock resume lines */}
-                    <div className="h-1.5 w-8 rounded-sm bg-white/40" />
-                    <div className="h-px w-full bg-white/10 my-0.5" />
+                    <div className="h-1.5 w-8 rounded-sm bg-gray-400" />
+                    <div className="h-px w-full bg-gray-200 my-0.5" />
                     <div className="space-y-1 flex-1">
-                      <div className="h-px w-full bg-white/20 rounded-full" />
-                      <div className="h-px w-4/5 bg-white/15 rounded-full" />
-                      <div className="h-px w-full bg-white/20 rounded-full" />
-                      <div className="h-px w-3/5 bg-white/15 rounded-full" />
-                      <div className="h-px w-full bg-white/20 rounded-full" />
-                      <div className="h-px w-4/5 bg-white/15 rounded-full" />
+                      <div className="h-px w-full bg-gray-300 rounded-full" />
+                      <div className="h-px w-4/5 bg-gray-200 rounded-full" />
+                      <div className="h-px w-full bg-gray-300 rounded-full" />
+                      <div className="h-px w-3/5 bg-gray-200 rounded-full" />
+                      <div className="h-px w-full bg-gray-300 rounded-full" />
+                      <div className="h-px w-4/5 bg-gray-200 rounded-full" />
                     </div>
-                    <span className="text-[7px] text-white/25 group-hover:text-white/50 transition text-center leading-none">view</span>
+                    <span className="text-[7px] text-gray-400 group-hover:text-gray-600 transition text-center leading-none">view</span>
                   </div>
                 </a>
               )}

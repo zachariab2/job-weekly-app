@@ -37,28 +37,6 @@ export async function getResumeText(resumePath: string | null | undefined): Prom
     } else {
       buffer = await readFile(resumePath);
     }
-    // pdf-parse v2 uses pdfjs-dist which requires DOMMatrix — polyfill for Node.js
-    if (typeof globalThis.DOMMatrix === "undefined") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).DOMMatrix = class DOMMatrix {
-        a=1;b=0;c=0;d=1;e=0;f=0;
-        m11=1;m12=0;m13=0;m14=0;m21=0;m22=1;m23=0;m24=0;
-        m31=0;m32=0;m33=1;m34=0;m41=0;m42=0;m43=0;m44=1;
-        is2D=true;isIdentity=true;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        constructor(_?: any) {}
-        translate() { return new (globalThis as any).DOMMatrix(); }
-        scale() { return new (globalThis as any).DOMMatrix(); }
-        rotate() { return new (globalThis as any).DOMMatrix(); }
-        multiply() { return new (globalThis as any).DOMMatrix(); }
-        inverse() { return new (globalThis as any).DOMMatrix(); }
-        transformPoint() { return { x:0, y:0, z:0, w:1 }; }
-        toFloat64Array() { return new Float64Array(16); }
-        toString() { return "matrix(1,0,0,1,0,0)"; }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        static fromMatrix() { return new (globalThis as any).DOMMatrix(); }
-      };
-    }
     // Dynamic import so pdf-parse doesn't execute on module load (breaks serverless)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfParseModule = await import("pdf-parse");
