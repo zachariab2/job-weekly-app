@@ -43,7 +43,8 @@ export async function getResumeText(resumePath: string | null | undefined): Prom
     const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
     const parsed = await pdfParse(buffer);
     return parsed.text.trim() || null;
-  } catch {
+  } catch (err) {
+    console.error("[getResumeText] failed:", err instanceof Error ? err.message : String(err));
     return null;
   }
 }
