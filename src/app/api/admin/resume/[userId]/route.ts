@@ -16,7 +16,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ userId:
   // In production, resumeUrl is a Vercel Blob URL — fetch and proxy it
   // In dev, it's a local file path — read from disk
   if (profile.resumeUrl.startsWith("http")) {
-    const blobRes = await fetch(profile.resumeUrl);
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    const blobRes = await fetch(profile.resumeUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
     if (!blobRes.ok) return NextResponse.json({ error: "Failed to fetch resume" }, { status: 502 });
     const buffer = await blobRes.arrayBuffer();
     return new NextResponse(buffer, {

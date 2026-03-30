@@ -79,30 +79,31 @@ export async function uploadResumeAction(formData: FormData) {
   if (!file || file.size === 0) return { status: "error" as const, message: "No file provided." };
   if (file.size > 5 * 1024 * 1024) return { status: "error" as const, message: "File must be under 5MB." };
 
+  // Read buffer first — file stream can only be consumed once
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
+
   let resumeUrl: string;
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     // Production: store in Vercel Blob
-    const blob = await put(`resumes/${user.id}.pdf`, file, { access: "private", allowOverwrite: true });
+    const blob = await put(`resumes/${user.id}.pdf`, fileBuffer, { access: "private", allowOverwrite: true, contentType: "application/pdf" });
     resumeUrl = blob.url;
   } else {
     // Development: store locally
     const dir = path.join(process.cwd(), "data", "resumes");
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, `${user.id}.pdf`);
-    const bytes = await file.arrayBuffer();
-    await writeFile(filePath, Buffer.from(bytes));
+    await writeFile(filePath, fileBuffer);
     resumeUrl = filePath;
   }
 
-  // Parse text from the buffer directly (avoids serverless URL-fetch issues later)
+  // Parse text from buffer (already read above)
   let resumeText: string | null = null;
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
     const pdfParseModule = await import("pdf-parse");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
-    const parsed = await pdfParse(buffer);
+    const parsed = await pdfParse(fileBuffer);
     resumeText = parsed.text?.trim() || null;
   } catch {
     // Non-fatal — text extraction failed, tailored resumes won't work but upload succeeds
