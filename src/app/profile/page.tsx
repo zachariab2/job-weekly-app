@@ -26,14 +26,30 @@ export default async function ProfilePage() {
       <div className="space-y-3">
         {/* Resume */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-white">Resume</p>
-              <p className="text-xs text-white/40 mt-0.5">
-                {profile?.resumeUrl
-                  ? "Resume on file — used to tailor each application"
-                  : "No resume uploaded yet"}
-              </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              {profile?.resumeUrl && (
+                <a href="/api/resume/download" target="_blank" rel="noreferrer" className="shrink-0 group">
+                  <div className="w-12 h-16 rounded border border-white/15 bg-white/[0.06] overflow-hidden relative hover:border-white/30 transition">
+                    <iframe
+                      src={`/api/resume/download#toolbar=0&navpanes=0&scrollbar=0`}
+                      className="w-[400%] h-[400%] origin-top-left scale-[0.25] pointer-events-none"
+                      title="Resume preview"
+                    />
+                    <div className="absolute inset-0 flex items-end justify-center pb-1">
+                      <span className="text-[7px] text-white/30 group-hover:text-white/60 transition">view</span>
+                    </div>
+                  </div>
+                </a>
+              )}
+              <div>
+                <p className="text-sm font-semibold text-white">Resume</p>
+                <p className="text-xs text-white/40 mt-0.5">
+                  {profile?.resumeUrl
+                    ? "On file — used to tailor each application"
+                    : "No resume uploaded yet"}
+                </p>
+              </div>
             </div>
             <ResumeUploadButton hasResume={!!profile?.resumeUrl} />
           </div>
