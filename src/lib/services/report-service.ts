@@ -24,7 +24,7 @@ function getOpenAI(): OpenAI {
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
-async function getResumeText(resumePath: string | null | undefined): Promise<string | null> {
+export async function getResumeText(resumePath: string | null | undefined): Promise<string | null> {
   if (!resumePath) return null;
   try {
     let buffer: Buffer;

@@ -132,22 +132,27 @@ export default async function ApplicationsPage() {
                 )}
               </div>
 
-              {/* Resume tips */}
-              <div className="space-y-2">
+              {/* Resume */}
+              <div className="space-y-3">
+                {rec.id && (
+                  <a
+                    href={`/api/resume/tailored?recId=${rec.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs text-white/60 hover:border-[var(--accent-strong)]/40 hover:text-white/90 hover:bg-white/[0.07] transition"
+                  >
+                    <span>↓</span> Download tailored resume
+                  </a>
+                )}
                 {resumeTips?.bullets && resumeTips.bullets.trim() ? (
-                  <>
-                    <p className="text-[10px] uppercase tracking-wider text-white/25">Suggested edits to your resume</p>
-                    <ul className="space-y-2">
-                      {resumeTips.bullets.split("\n").filter(Boolean).map((b, i) => (
-                        <li key={i} className="flex gap-2 text-xs text-white/55 leading-relaxed">
-                          <span className="text-[var(--accent-strong)] shrink-0 mt-0.5">·</span>
-                          <span>{b}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
+                  <ul className="space-y-2">
+                    {resumeTips.bullets.split("\n").filter(Boolean).map((b, i) => (
+                      <li key={i} className="flex gap-2 text-xs text-white/55 leading-relaxed">
+                        <span className="text-[var(--accent-strong)] shrink-0 mt-0.5">·</span>
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <p className="text-xs text-white/20 leading-relaxed">Upload your resume on the profile page to get job-specific tips.</p>
+                  <p className="text-xs text-white/20 leading-relaxed">Upload your resume to get AI tips per job.</p>
                 )}
               </div>
 
