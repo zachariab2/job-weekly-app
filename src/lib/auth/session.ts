@@ -78,8 +78,10 @@ export async function requireUser(next?: string) {
 export async function requireActiveUser() {
   const user = await requireUser();
 
-  // Skip subscription check in local dev
+  // Skip subscription check in local dev or for owner emails
   if (process.env.NODE_ENV === "development") return user;
+  const ownerEmails = (process.env.OWNER_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (ownerEmails.includes((user.email ?? "").toLowerCase())) return user;
 
   let subscription;
   try {

@@ -1,6 +1,6 @@
 "use server";
 
-import { db, networkingLeads } from "@/lib/db";
+import { db, networkingLeads, users, profiles, jobPreferences, applications, reports, reportRecommendations, resumeRecommendations, subscriptions, notificationPreferences, referralCodes } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { requireOwner } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
@@ -44,5 +44,29 @@ export async function deleteContactAction(formData: FormData) {
   const id = Number(formData.get("contactId"));
   if (!id) return;
   await db.delete(networkingLeads).where(eq(networkingLeads.id, id));
+  revalidatePath("/admin");
+}
+
+export async function deleteUserAction(formData: FormData) {
+  await requireOwner();
+  const userId = formData.get("userId");
+  if (typeof userId !== "string" || !userId) return;
+
+  // Delete in dependency order
+  const userReports = await db.query.reports.findMany({ where: eq(reports.userId, userId), columns: { id: true } });
+  for (const r of userReports) {
+    await db.delete(reportRecommendations).where(eq(reportRecommendations.reportId, r.id));
+    await db.delete(resumeRecommendations).where(eq(resumeRecommendations.reportId, r.id));
+    await db.delete(networkingLeads).where(eq(networkingLeads.reportId, r.id));
+  }
+  await db.delete(reports).where(eq(reports.userId, userId));
+  await db.delete(profiles).where(eq(profiles.userId, userId));
+  await db.delete(jobPreferences).where(eq(jobPreferences.userId, userId));
+  await db.delete(applications).where(eq(applications.userId, userId));
+  await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
+  await db.delete(notificationPreferences).where(eq(notificationPreferences.userId, userId));
+  await db.delete(referralCodes).where(eq(referralCodes.ownerUserId, userId));
+  await db.delete(users).where(eq(users.id, userId));
+
   revalidatePath("/admin");
 }
