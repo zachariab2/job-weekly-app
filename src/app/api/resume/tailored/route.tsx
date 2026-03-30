@@ -74,11 +74,12 @@ async function tailorResume(
       {
         role: "system",
         content: `You are an elite resume writer. Rewrite the candidate's resume specifically for ONE role at ONE company. Rules:
-- NEVER fabricate experience, education, skills, or dates — only reframe what exists
-- ALWAYS include ALL education entries — education is mandatory
+- NEVER fabricate, add, or remove any section that exists in the original — only reframe and reword
+- ALWAYS include ALL experience, projects, education entries from the original resume
 - Rewrite every bullet to highlight skills relevant to the ${role} role at ${company} — no generic rewrites
 - Bullets must be action-verb led, quantified where possible, keyword-optimized for this role
-- Do NOT add a summary section — resume starts directly with experience
+- Keep the exact same sections and section order as the original resume
+- Do NOT add a summary section
 - Skills: reorder so most relevant to ${role} at ${company} come first
 - Return ONLY valid JSON, no markdown`,
       },
@@ -89,7 +90,7 @@ async function tailorResume(
 RESUME TEXT:
 ${resumeText.slice(0, 7000)}
 
-Return this exact JSON (education is required):
+Return this exact JSON — preserve every section from the original resume:
 {
   "name": "full name from resume",
   "email": "email or empty string",
@@ -99,16 +100,21 @@ Return this exact JSON (education is required):
   "experience": [
     { "company": "...", "role": "...", "dates": "...", "bullets": ["tailored bullet", "..."] }
   ],
+  "projects": [
+    { "name": "project name", "tech": "tech stack or empty string", "dates": "dates or empty string", "bullets": ["tailored bullet highlighting relevance to ${role} at ${company}", "..."] }
+  ],
   "education": [
     { "school": "...", "degree": "degree and major", "dates": "...", "gpa": "GPA or empty string" }
   ],
   "skills": ["most relevant to ${role} at ${company} first", "..."],
   "changes": [
-    "one sentence explaining a specific change and why it helps for this role at this company — e.g. 'Led with your TensorFlow work at [Company] because Databricks runs its ML infra on TF'",
-    "another specific change + why it matters for this application",
-    "another specific change + why it matters for this application"
+    "one sentence: what was changed and exactly why it helps for ${role} at ${company} — be specific, reference the actual project/skill name",
+    "another change + why",
+    "another change + why"
   ]
-}`,
+}
+
+If the original resume has no projects section, return "projects": [].``,
       },
     ],
   });
