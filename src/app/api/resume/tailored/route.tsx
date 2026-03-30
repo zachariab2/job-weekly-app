@@ -46,14 +46,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  let resumeText: string | null = null;
-  try {
-    resumeText = await getResumeText(profile.resumeUrl);
-  } catch (err) {
-    return new NextResponse(`PDF parse error: ${err instanceof Error ? err.message : String(err)}`, { status: 400 });
-  }
+  const resumeText = await getResumeText(profile.resumeUrl);
   if (!resumeText) {
-    return new NextResponse("Resume parsed but returned empty text.", { status: 400 });
+    return new NextResponse("Could not parse your resume. Please re-upload it on the profile page.", { status: 400 });
   }
 
   const tailored = await tailorResume(resumeText, rec.company, rec.role, user.firstName, user.email);

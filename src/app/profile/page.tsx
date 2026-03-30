@@ -30,15 +30,13 @@ export default async function ProfilePage() {
             <div className="flex items-start gap-4">
               {profile?.resumeUrl && (
                 <a href="/api/resume/download" target="_blank" rel="noreferrer" className="shrink-0 group">
-                  <div className="w-12 h-16 rounded border border-white/15 bg-white/[0.06] overflow-hidden relative hover:border-white/30 transition">
-                    <iframe
-                      src={`/api/resume/download#toolbar=0&navpanes=0&scrollbar=0`}
-                      className="w-[400%] h-[400%] origin-top-left scale-[0.25] pointer-events-none"
-                      title="Resume preview"
-                    />
-                    <div className="absolute inset-0 flex items-end justify-center pb-1">
-                      <span className="text-[7px] text-white/30 group-hover:text-white/60 transition">view</span>
-                    </div>
+                  <div className="w-10 h-13 rounded border border-white/15 bg-white/[0.04] flex flex-col items-center justify-center gap-1 px-2 py-2 hover:border-white/30 hover:bg-white/[0.07] transition">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white/40 group-hover:text-white/70 transition">
+                      <path d="M3 2a1 1 0 011-1h6l3 3v10a1 1 0 01-1 1H4a1 1 0 01-1-1V2z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+                      <path d="M9 1v3h3" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+                      <path d="M5.5 8.5h5M5.5 10.5h3" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+                    </svg>
+                    <span className="text-[8px] text-white/25 group-hover:text-white/50 transition leading-none">PDF</span>
                   </div>
                 </a>
               )}
