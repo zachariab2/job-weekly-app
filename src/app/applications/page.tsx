@@ -134,11 +134,11 @@ export default async function ApplicationsPage() {
 
               {/* Resume tips */}
               <div className="space-y-2">
-                {resumeTips?.bullets ? (
+                {resumeTips?.bullets && resumeTips.bullets.trim() ? (
                   <>
                     <p className="text-[10px] uppercase tracking-wider text-white/25">Suggested edits to your resume</p>
                     <ul className="space-y-2">
-                      {resumeTips.bullets.split("\n").map((b, i) => (
+                      {resumeTips.bullets.split("\n").filter(Boolean).map((b, i) => (
                         <li key={i} className="flex gap-2 text-xs text-white/55 leading-relaxed">
                           <span className="text-[var(--accent-strong)] shrink-0 mt-0.5">·</span>
                           <span>{b}</span>
@@ -146,13 +146,8 @@ export default async function ApplicationsPage() {
                       ))}
                     </ul>
                   </>
-                ) : rec.resumeFocus ? (
-                  <>
-                    <p className="text-[10px] uppercase tracking-wider text-white/25">Suggested edits to your resume</p>
-                    <p className="text-xs text-white/40 leading-relaxed">Focus on: {rec.resumeFocus}</p>
-                  </>
                 ) : (
-                  <p className="text-xs text-white/20">—</p>
+                  <p className="text-xs text-white/20 leading-relaxed">Upload your resume on the profile page to get job-specific tips.</p>
                 )}
               </div>
 

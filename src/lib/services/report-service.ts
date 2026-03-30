@@ -196,6 +196,26 @@ export async function getAllActiveJobsForUser(userId: string) {
       .map((a) => [`${a.company}||${a.role}`, a.status]),
   );
 
+  // Merge all contacts across reports by company so admin-added contacts survive regenerations
+  const allContactsByCompany = new Map<string, typeof userReports[0]["networking"]>();
+  for (const report of userReports) {
+    for (const contact of report.networking) {
+      const key = (contact.company ?? "").toLowerCase();
+      if (!allContactsByCompany.has(key)) allContactsByCompany.set(key, []);
+      allContactsByCompany.get(key)!.push(contact);
+    }
+  }
+  // Deduplicate contacts by name+company
+  for (const [key, contacts] of allContactsByCompany) {
+    const seen2 = new Set<string>();
+    allContactsByCompany.set(key, contacts.filter((c) => {
+      const ck = `${c.name}||${c.company}`;
+      if (seen2.has(ck)) return false;
+      seen2.add(ck);
+      return true;
+    }));
+  }
+
   const seen = new Set<string>();
   const rows: Array<{
     rec: typeof userReports[0]["recommendations"][0];
@@ -211,9 +231,7 @@ export async function getAllActiveJobsForUser(userId: string) {
       seen.add(key);
       rows.push({
         rec,
-        contacts: report.networking.filter(
-          (n) => n.company?.toLowerCase() === rec.company.toLowerCase(),
-        ),
+        contacts: allContactsByCompany.get(rec.company.toLowerCase()) ?? [],
         resumeTips: report.resumeRecommendations.find(
           (r) => r.company?.toLowerCase() === rec.company.toLowerCase(),
         ),
@@ -372,11 +390,7 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     }
     return {
       reason: job.description.slice(0, 120).replace(/\s+/g, " ").trim(),
-      bullets: [
-        `Highlight your most relevant technical experience for ${job.role}.`,
-        `Quantify your impact across your top 2 projects.`,
-        `Tailor your summary line to mention ${job.role}.`,
-      ],
+      bullets: [] as string[],
     };
   }));
 

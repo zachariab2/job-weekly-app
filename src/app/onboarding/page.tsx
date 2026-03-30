@@ -34,6 +34,20 @@ const ROLE_OPTIONS = [
 
 const JOB_TYPE_OPTIONS = ["Internship", "Co-op", "New Grad", "Full-time", "Contract"];
 
+const CITY_OPTIONS = [
+  "New York, NY",
+  "San Francisco, CA",
+  "Seattle, WA",
+  "Boston, MA",
+  "Austin, TX",
+  "Los Angeles, CA",
+  "Chicago, IL",
+  "Washington, DC",
+  "Denver, CO",
+  "Atlanta, GA",
+  "Remote",
+];
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -238,7 +252,7 @@ export default function OnboardingPage() {
                 options={JOB_TYPE_OPTIONS}
                 placeholder="Select one"
               />
-              <Field label="Preferred locations" name="locations" value={form.locations} onChange={set} placeholder="NYC, SF, Remote" />
+              <MultiPillGroup label="Preferred locations" name="locations" options={CITY_OPTIONS} value={form.locations} onChange={set} />
               <PillGroup label="Remote preference" name="relocation" options={["On-site", "Hybrid", "Remote", "Any"]} value={form.relocation} onChange={set} />
               <Field label="Dream companies (optional)" name="dreamCompanies" value={form.dreamCompanies} onChange={set} placeholder="Stripe, Figma, Notion" />
             </div>
@@ -381,6 +395,39 @@ function PillGroup({ label, name, options, value, onChange }: {
             onClick={() => onChange(name, o)}
             className={`rounded-full border px-4 py-1.5 text-sm transition ${
               value === o
+                ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/10 text-[var(--accent-strong)]"
+                : "border-white/15 text-white/50 hover:border-white/30 hover:text-white/70"
+            }`}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MultiPillGroup({ label, name, options, value, onChange }: {
+  label: string; name: string; options: string[]; value?: string; onChange: (k: string, v: string) => void;
+}) {
+  const selected = value ? value.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  function toggle(option: string) {
+    const next = selected.includes(option)
+      ? selected.filter((s) => s !== option)
+      : [...selected, option];
+    onChange(name, next.join(", "));
+  }
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wider text-white/30 mb-2">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            onClick={() => toggle(o)}
+            className={`rounded-full border px-4 py-1.5 text-sm transition ${
+              selected.includes(o)
                 ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/10 text-[var(--accent-strong)]"
                 : "border-white/15 text-white/50 hover:border-white/30 hover:text-white/70"
             }`}
