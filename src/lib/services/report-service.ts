@@ -59,11 +59,33 @@ type JSearchJob = {
   job_description: string | null;
 };
 
-async function fetchJSearchJobs(query: string, count = 10): Promise<JSearchJob[]> {
+// Maps onboarding job type labels → JSearch employment_types values
+function toJSearchEmploymentTypes(jobTypes: string): string {
+  const map: Record<string, string> = {
+    "internship": "INTERN",
+    "co-op": "INTERN",
+    "new grad": "FULLTIME",
+    "full-time": "FULLTIME",
+    "contract": "CONTRACTOR",
+  };
+  const types = jobTypes
+    .split(",")
+    .map((t) => map[t.trim().toLowerCase()])
+    .filter(Boolean);
+  return [...new Set(types)].join(",");
+}
+
+async function fetchJSearchJobs(query: string, employmentTypes: string, count = 10): Promise<JSearchJob[]> {
   const apiKey = process.env.JSEARCH_API_KEY;
   if (!apiKey) return [];
   try {
-    const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&num_pages=1&date_posted=month`;
+    const params = new URLSearchParams({
+      query,
+      num_pages: "1",
+      date_posted: "month",
+    });
+    if (employmentTypes) params.set("employment_types", employmentTypes);
+    const url = `https://jsearch.p.rapidapi.com/search?${params}`;
     const res = await fetch(url, {
       headers: {
         "X-RapidAPI-Key": apiKey,
@@ -342,8 +364,9 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
   const industries = prefs?.industries ?? "tech";
 
   // Fetch real jobs from JSearch; fall back to catalog if unavailable
-  const searchQuery = `${targetRole} internship ${industries}`;
-  const jsearchJobs = await fetchJSearchJobs(searchQuery, 5);
+  const employmentTypes = toJSearchEmploymentTypes(prefs?.jobTypes ?? "internship");
+  const searchQuery = `${targetRole} ${industries}`;
+  const jsearchJobs = await fetchJSearchJobs(searchQuery, employmentTypes, 5);
 
   let jobData: Array<{
     company: string;
