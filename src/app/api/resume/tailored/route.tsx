@@ -66,31 +66,52 @@ async function tailorResume(
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
-    max_tokens: 2500,
+    max_tokens: 4000,
     response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
-        content: "You are a professional resume writer. Return only valid JSON matching the requested schema. Keep all factual information accurate — only reframe and reword.",
+        content: `You are an elite resume writer. Your job is to take a candidate's resume and rewrite it specifically for ONE target role at ONE specific company. Rules:
+- NEVER fabricate experience, education, skills, or dates — only reframe what exists
+- ALWAYS include ALL education entries from the resume — education is mandatory
+- Each bullet point must be reworded to directly highlight skills and impact relevant to the ${role} role at ${company} specifically — not generic rewrites
+- Make bullets action-verb led, quantified where possible, and keyword-optimized for ${role} at ${company}
+- The summary must be 2-3 sentences that feel personally written for this exact application — mention ${company} and the specific value the candidate brings to a ${role} role
+- Skills list: reorder so the skills most relevant to ${role} at ${company} come first
+- Return ONLY valid JSON, no markdown`,
       },
       {
         role: "user",
-        content: `Tailor this resume for a ${role} position at ${company}. Rewrite bullet points to emphasize the most relevant skills and experience. Write a strong 2-3 sentence summary mentioning the role and company. Reorder skills by relevance. Do not fabricate any experience or education.
+        content: `Tailor this resume for a ${role} position at ${company}.
 
-RESUME:
-${resumeText.slice(0, 4000)}
+RESUME TEXT:
+${resumeText.slice(0, 7000)}
 
-Return JSON:
+Return this exact JSON shape (include every section — education is required even if minimal):
 {
   "name": "full name from resume",
-  "email": "email from resume",
-  "phone": "phone from resume or empty string",
+  "email": "email from resume or empty string",
+  "phone": "phone number from resume or empty string",
   "linkedin": "linkedin URL from resume or empty string",
-  "github": "github from resume or empty string",
-  "summary": "tailored summary for ${role} at ${company}",
-  "experience": [{ "company": "...", "role": "...", "dates": "...", "bullets": ["..."] }],
-  "education": [{ "school": "...", "degree": "...", "dates": "...", "gpa": "..." }],
-  "skills": ["most relevant first", "..."]
+  "github": "github username or URL from resume or empty string",
+  "summary": "2-3 sentence summary written specifically for ${role} at ${company}",
+  "experience": [
+    {
+      "company": "company name",
+      "role": "job title",
+      "dates": "date range",
+      "bullets": ["rewritten bullet tailored to ${role} at ${company}", "..."]
+    }
+  ],
+  "education": [
+    {
+      "school": "university or school name",
+      "degree": "degree and major",
+      "dates": "graduation date or date range",
+      "gpa": "GPA if listed, otherwise empty string"
+    }
+  ],
+  "skills": ["most relevant to ${role} at ${company} first", "..."]
 }`,
       },
     ],
