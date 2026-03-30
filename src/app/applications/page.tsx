@@ -33,7 +33,7 @@ export default async function ApplicationsPage() {
       <div className="hidden md:grid grid-cols-[2fr_2fr_1.5fr_auto] gap-6 px-5 text-[11px] uppercase tracking-widest text-white/25">
         <span>Company &amp; Role</span>
         <span>Referral Contacts</span>
-        <span>What we changed</span>
+        <span>Resume</span>
         <span className="w-[140px] text-right">Status</span>
       </div>
 
@@ -134,20 +134,11 @@ export default async function ApplicationsPage() {
               </div>
 
               {/* Resume */}
-              <div className="space-y-3">
-                {rec.id && <TailoredResumeButton recId={rec.id} />}
-                {resumeTips?.bullets && resumeTips.bullets.trim() ? (
-                  <ul className="space-y-2">
-                    {resumeTips.bullets.split("\n").filter(Boolean).map((b, i) => (
-                      <li key={i} className="flex gap-2 text-xs text-white/55 leading-relaxed">
-                        <span className="text-[var(--accent-strong)] shrink-0 mt-0.5">·</span>
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-xs text-white/20 leading-relaxed">Upload your resume to unlock tailored edits.</p>
-                )}
+              <div>
+                {rec.id
+                  ? <TailoredResumeButton recId={rec.id} company={rec.company} />
+                  : <p className="text-xs text-white/20">Upload your resume to tailor per job.</p>
+                }
               </div>
 
               {/* Status */}

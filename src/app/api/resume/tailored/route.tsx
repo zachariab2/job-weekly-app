@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Could not read your resume. Please re-upload it on the profile page.", { status: 400 });
   }
 
-  const tailored = await tailorResume(resumeText, rec.company, rec.role, user.firstName, user.email);
+  const { data: tailored, changes } = await tailorResume(resumeText, rec.company, rec.role, user.firstName, user.email);
 
   const buffer = await renderToBuffer(React.createElement(ResumeDocument, { data: tailored }));
 
@@ -51,6 +51,8 @@ export async function GET(req: NextRequest) {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${safeName} - ${safeCompany}.pdf"`,
+      "X-Resume-Changes": JSON.stringify(changes),
+      "Access-Control-Expose-Headers": "X-Resume-Changes",
     },
   });
 }
@@ -61,7 +63,7 @@ async function tailorResume(
   role: string,
   firstName: string | null,
   email: string | null,
-): Promise<TailoredResumeData> {
+): Promise<{ data: TailoredResumeData; changes: string[] }> {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   const response = await openai.chat.completions.create({
@@ -71,13 +73,13 @@ async function tailorResume(
     messages: [
       {
         role: "system",
-        content: `You are an elite resume writer. Your job is to take a candidate's resume and rewrite it specifically for ONE target role at ONE specific company. Rules:
+        content: `You are an elite resume writer. Rewrite the candidate's resume specifically for ONE role at ONE company. Rules:
 - NEVER fabricate experience, education, skills, or dates — only reframe what exists
-- ALWAYS include ALL education entries from the resume — education is mandatory
-- Each bullet point must be reworded to directly highlight skills and impact relevant to the ${role} role at ${company} specifically — not generic rewrites
-- Make bullets action-verb led, quantified where possible, and keyword-optimized for ${role} at ${company}
-- Do NOT add a summary section — the resume should start directly with experience
-- Skills list: reorder so the skills most relevant to ${role} at ${company} come first
+- ALWAYS include ALL education entries — education is mandatory
+- Rewrite every bullet to highlight skills relevant to the ${role} role at ${company} — no generic rewrites
+- Bullets must be action-verb led, quantified where possible, keyword-optimized for this role
+- Do NOT add a summary section — resume starts directly with experience
+- Skills: reorder so most relevant to ${role} at ${company} come first
 - Return ONLY valid JSON, no markdown`,
       },
       {
@@ -87,51 +89,46 @@ async function tailorResume(
 RESUME TEXT:
 ${resumeText.slice(0, 7000)}
 
-Return this exact JSON shape (include every section — education is required even if minimal):
+Return this exact JSON (education is required):
 {
   "name": "full name from resume",
-  "email": "email from resume or empty string",
-  "phone": "phone number from resume or empty string",
-  "linkedin": "linkedin URL from resume or empty string",
-  "github": "github username or URL from resume or empty string",
+  "email": "email or empty string",
+  "phone": "phone or empty string",
+  "linkedin": "linkedin URL or empty string",
+  "github": "github username/URL or empty string",
   "experience": [
-    {
-      "company": "company name",
-      "role": "job title",
-      "dates": "date range",
-      "bullets": ["rewritten bullet tailored to ${role} at ${company}", "..."]
-    }
+    { "company": "...", "role": "...", "dates": "...", "bullets": ["tailored bullet", "..."] }
   ],
   "education": [
-    {
-      "school": "university or school name",
-      "degree": "degree and major",
-      "dates": "graduation date or date range",
-      "gpa": "GPA if listed, otherwise empty string"
-    }
+    { "school": "...", "degree": "degree and major", "dates": "...", "gpa": "GPA or empty string" }
   ],
-  "skills": ["most relevant to ${role} at ${company} first", "..."]
+  "skills": ["most relevant to ${role} at ${company} first", "..."],
+  "changes": [
+    "past-tense description of specific change 1 — reference actual project/skill names from the resume",
+    "past-tense description of specific change 2",
+    "past-tense description of specific change 3"
+  ]
 }`,
       },
     ],
   });
 
   try {
-    const data = JSON.parse(response.choices[0]?.message?.content ?? "{}") as TailoredResumeData;
-    // Fill in fallbacks from known user data
+    const raw = JSON.parse(response.choices[0]?.message?.content ?? "{}") as TailoredResumeData & { changes?: string[] };
+    const changes: string[] = Array.isArray(raw.changes) ? raw.changes.slice(0, 3) : [];
+    // Strip changes from PDF data
+    const { changes: _c, ...data } = raw as TailoredResumeData & { changes?: string[] };
+    void _c;
     if (!data.name && firstName) data.name = firstName;
     if (!data.email && email) data.email = email;
     if (!data.experience) data.experience = [];
     if (!data.education) data.education = [];
     if (!data.skills) data.skills = [];
-    return data;
+    return { data, changes };
   } catch {
     return {
-      name: firstName ?? "Resume",
-      email: email ?? "",
-      experience: [],
-      education: [],
-      skills: [],
+      data: { name: firstName ?? "Resume", email: email ?? "", experience: [], education: [], skills: [] },
+      changes: [],
     };
   }
 }
