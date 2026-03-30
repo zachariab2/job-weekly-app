@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth/session";
 import { db, subscriptions, referralCodes } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "./actions";
+import { CopyLinkButton } from "./copy-link-button";
 import { redirect } from "next/navigation";
 
 type BillingPageProps = {
@@ -119,7 +120,10 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
                         <p className="text-sm font-semibold text-white">{code.code}</p>
                         <p className="text-xs text-white/50">Issued {code.issuedAt ? new Date(code.issuedAt).toLocaleDateString() : "today"}</p>
                       </div>
-                      <div className="text-xs text-white/60">{statusLabel}</div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-white/60">{statusLabel}</span>
+                        {!code.redeemedByUserId && <CopyLinkButton code={code.code} />}
+                      </div>
                     </div>
                   );
                 })}

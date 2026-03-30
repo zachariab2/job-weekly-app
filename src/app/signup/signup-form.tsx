@@ -7,7 +7,7 @@ import Link from "next/link";
 
 const initialState = { error: undefined as string | undefined };
 
-export function SignupForm() {
+export function SignupForm({ refCode }: { refCode?: string }) {
   const [state, formAction] = useActionState(signupAction, initialState);
 
   return (
@@ -44,6 +44,7 @@ export function SignupForm() {
         <input
           name="referralCode"
           placeholder="ABC123"
+          defaultValue={refCode ?? ""}
           className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
         />
       </label>

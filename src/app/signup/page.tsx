@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { SignupForm } from "./signup-form";
 
-export default function SignupPage() {
+export default async function SignupPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const { ref } = await searchParams;
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-20">
       <Card className="space-y-6">
@@ -12,7 +13,7 @@ export default function SignupPage() {
             $9.99/week. Your first batch drops within minutes. Cancel anytime.
           </p>
         </div>
-        <SignupForm />
+        <SignupForm refCode={ref} />
       </Card>
     </div>
   );
