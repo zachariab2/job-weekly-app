@@ -6,7 +6,6 @@ export type TailoredResumeData = {
   phone?: string;
   linkedin?: string;
   github?: string;
-  summary?: string;
   experience: Array<{
     company: string;
     role: string;
@@ -61,14 +60,6 @@ export function ResumeDocument({ data }: { data: TailoredResumeData }) {
           ))}
         </View>
         <View style={s.divider} />
-
-        {/* Summary */}
-        {data.summary && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Summary</Text>
-            <Text style={s.summary}>{data.summary}</Text>
-          </View>
-        )}
 
         {/* Experience */}
         {data.experience.length > 0 && (

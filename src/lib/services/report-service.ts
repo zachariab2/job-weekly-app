@@ -91,7 +91,7 @@ async function generateTipsAndReason(
     max_tokens: 600,
     messages: [{
       role: "user",
-      content: `You are a resume coach helping a CS student tailor their resume for a specific job application.
+      content: `You are reviewing what an AI resume writer changed when it tailored a student's resume for a specific job.
 
 RESUME:
 ${resumeText.slice(0, 3000)}
@@ -100,14 +100,14 @@ JOB: ${role} at ${company}
 JOB DESCRIPTION: ${jobDescription.slice(0, 1000)}
 
 Return exactly 4 lines:
-1. REASON: one sentence (max 20 words) explaining why this role is a strong match for this specific student based on their resume and the job. Be specific — mention a skill or experience they have.
-2-4. Three bullet points starting with "•" — short, specific, actionable resume edits for this application. Reference what's actually in their resume.
+1. REASON: one sentence (max 20 words) explaining why this role is a strong match for this student. Be specific — mention an actual skill or project from their resume.
+2-4. Three bullet points starting with "•" — past tense, describing what was specifically rewritten in the tailored version. Reference actual content from their resume (specific projects, skills, or companies). Examples of the right tone: "Moved Python and ML frameworks to top of skills list", "Rewrote [Project Name] bullets to lead with model accuracy improvements", "Reframed [Company] experience to emphasize data pipeline scale".
 
 Format:
 REASON: <sentence>
-• <bullet>
-• <bullet>
-• <bullet>`,
+• <what was changed>
+• <what was changed>
+• <what was changed>`,
     }],
   });
 

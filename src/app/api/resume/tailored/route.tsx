@@ -76,7 +76,7 @@ async function tailorResume(
 - ALWAYS include ALL education entries from the resume — education is mandatory
 - Each bullet point must be reworded to directly highlight skills and impact relevant to the ${role} role at ${company} specifically — not generic rewrites
 - Make bullets action-verb led, quantified where possible, and keyword-optimized for ${role} at ${company}
-- The summary must be 2-3 sentences that feel personally written for this exact application — mention ${company} and the specific value the candidate brings to a ${role} role
+- Do NOT add a summary section — the resume should start directly with experience
 - Skills list: reorder so the skills most relevant to ${role} at ${company} come first
 - Return ONLY valid JSON, no markdown`,
       },
@@ -94,7 +94,6 @@ Return this exact JSON shape (include every section — education is required ev
   "phone": "phone number from resume or empty string",
   "linkedin": "linkedin URL from resume or empty string",
   "github": "github username or URL from resume or empty string",
-  "summary": "2-3 sentence summary written specifically for ${role} at ${company}",
   "experience": [
     {
       "company": "company name",
@@ -130,7 +129,6 @@ Return this exact JSON shape (include every section — education is required ev
     return {
       name: firstName ?? "Resume",
       email: email ?? "",
-      summary: `Tailored resume for ${role} at ${company}.`,
       experience: [],
       education: [],
       skills: [],

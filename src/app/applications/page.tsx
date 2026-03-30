@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
 import { getAllActiveJobsForUser } from "@/lib/services/report-service";
 import { setApplicationStatusAction, generateReportAction } from "./actions";
+import { TailoredResumeButton } from "./tailored-resume-button";
 
 export default async function ApplicationsPage() {
   const user = await requireActiveUser();
@@ -32,7 +33,7 @@ export default async function ApplicationsPage() {
       <div className="hidden md:grid grid-cols-[2fr_2fr_1.5fr_auto] gap-6 px-5 text-[11px] uppercase tracking-widest text-white/25">
         <span>Company &amp; Role</span>
         <span>Referral Contacts</span>
-        <span>Resume Tips</span>
+        <span>What we changed</span>
         <span className="w-[140px] text-right">Status</span>
       </div>
 
@@ -134,14 +135,7 @@ export default async function ApplicationsPage() {
 
               {/* Resume */}
               <div className="space-y-3">
-                {rec.id && (
-                  <a
-                    href={`/api/resume/tailored?recId=${rec.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs text-white/60 hover:border-[var(--accent-strong)]/40 hover:text-white/90 hover:bg-white/[0.07] transition"
-                  >
-                    <span>↓</span> Download tailored resume
-                  </a>
-                )}
+                {rec.id && <TailoredResumeButton recId={rec.id} />}
                 {resumeTips?.bullets && resumeTips.bullets.trim() ? (
                   <ul className="space-y-2">
                     {resumeTips.bullets.split("\n").filter(Boolean).map((b, i) => (
@@ -152,7 +146,7 @@ export default async function ApplicationsPage() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-xs text-white/20 leading-relaxed">Upload your resume to get AI tips per job.</p>
+                  <p className="text-xs text-white/20 leading-relaxed">Upload your resume to unlock tailored edits.</p>
                 )}
               </div>
 
