@@ -114,7 +114,7 @@ Return this exact JSON — preserve every section from the original resume:
   ]
 }
 
-If the original resume has no projects section, return "projects": [].``,
+If the original resume has no projects section, return "projects": [].`,
       },
     ],
   });
