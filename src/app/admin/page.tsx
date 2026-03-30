@@ -2,7 +2,8 @@ import { requireOwner } from "@/lib/auth/session";
 import { db, users, subscriptions, reports, profiles, jobPreferences } from "@/lib/db";
 import { desc } from "drizzle-orm";
 import { AddContactForm } from "./add-contact-form";
-import { deleteContactAction, activateUserAction, deleteUserAction } from "./actions";
+import { deleteContactAction, activateUserAction } from "./actions";
+import { DeleteUserButton } from "./delete-user-button";
 
 export default async function AdminPage() {
   await requireOwner();
@@ -100,14 +101,7 @@ export default async function AdminPage() {
                       </button>
                     </form>
                   )}
-                  <form action={deleteUserAction}>
-                    <input type="hidden" name="userId" value={user.id} />
-                    <button type="submit"
-                      className="text-xs text-red-400/50 hover:text-red-400 transition px-2 py-1"
-                      onClick={(e) => { if (!confirm(`Delete ${user.email}? This cannot be undone.`)) e.preventDefault(); }}>
-                      Delete
-                    </button>
-                  </form>
+                  <DeleteUserButton userId={user.id} email={user.email ?? ""} />
                 </div>
               </div>
 
