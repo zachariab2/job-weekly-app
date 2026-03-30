@@ -29,7 +29,10 @@ export async function getResumeText(resumePath: string | null | undefined): Prom
   try {
     let buffer: Buffer;
     if (resumePath.startsWith("http")) {
-      const res = await fetch(resumePath);
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      const res = await fetch(resumePath, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       buffer = Buffer.from(await res.arrayBuffer());
     } else {
       buffer = await readFile(resumePath);

@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("No resume uploaded. Please upload your resume on the profile page first.", { status: 400 });
   }
 
+  // getResumeText handles private blob auth internally
   const resumeText = await getResumeText(profile.resumeUrl);
   if (!resumeText) {
     return new NextResponse("Could not read your resume. Please re-upload it on the profile page.", { status: 400 });
