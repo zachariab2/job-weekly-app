@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
 import { db, profiles, jobPreferences } from "@/lib/db";
 import { eq } from "drizzle-orm";
+import { ResumeUploadButton } from "./resume-upload-button";
 
 export default async function ProfilePage() {
   const user = await requireActiveUser();
@@ -34,9 +35,7 @@ export default async function ProfilePage() {
                   : "No resume uploaded yet"}
               </p>
             </div>
-            <button className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition">
-              {profile?.resumeUrl ? "Replace" : "Upload resume"}
-            </button>
+            <ResumeUploadButton hasResume={!!profile?.resumeUrl} />
           </div>
         </div>
 
