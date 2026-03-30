@@ -28,34 +28,52 @@ export type TailoredResumeData = {
 };
 
 const s = StyleSheet.create({
-  page: { fontFamily: "Helvetica", fontSize: 10, color: "#111", paddingHorizontal: 44, paddingVertical: 40 },
-  name: { fontSize: 20, fontFamily: "Helvetica-Bold", marginBottom: 3 },
-  contact: { fontSize: 9, color: "#444", flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },
-  contactItem: { color: "#444" },
-  divider: { borderBottomWidth: 0.75, borderBottomColor: "#ccc", marginBottom: 8 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
-  sectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 1, color: "#555" },
-  sectionLine: { flex: 1, borderBottomWidth: 0.5, borderBottomColor: "#ddd", marginLeft: 6 },
-  section: { marginBottom: 10 },
-  entry: { marginBottom: 8 },
-  entryRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  entryTitle: { fontFamily: "Helvetica-Bold", fontSize: 10 },
-  entrySubtitle: { fontSize: 9.5, color: "#333", marginBottom: 1 },
-  entryDates: { fontSize: 9, color: "#777" },
-  bullet: { flexDirection: "row", marginBottom: 2.5, paddingLeft: 2 },
-  bulletDot: { fontSize: 9.5, color: "#555", marginRight: 5, marginTop: 0.5 },
-  bulletText: { flex: 1, fontSize: 9.5, lineHeight: 1.45, color: "#222" },
-  skillsText: { fontSize: 9.5, color: "#222", lineHeight: 1.6 },
-});
+  page: {
+    fontFamily: "Helvetica",
+    fontSize: 10,
+    color: "#111",
+    paddingHorizontal: 48,
+    paddingTop: 36,
+    paddingBottom: 36,
+  },
 
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <View style={s.sectionHeader}>
-      <Text style={s.sectionTitle}>{title}</Text>
-      <View style={s.sectionLine} />
-    </View>
-  );
-}
+  // ── Header ──────────────────────────────────────────
+  header: { alignItems: "center", marginBottom: 10 },
+  name: { fontSize: 18, fontFamily: "Helvetica-Bold", letterSpacing: 0.5, marginBottom: 4 },
+  contactRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6 },
+  contactItem: { fontSize: 9, color: "#444" },
+  contactSep: { fontSize: 9, color: "#bbb" },
+  headerDivider: { borderBottomWidth: 1.5, borderBottomColor: "#111", width: "100%", marginTop: 8 },
+
+  // ── Sections ─────────────────────────────────────────
+  section: { marginTop: 9 },
+  sectionTitle: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#999",
+    paddingBottom: 2,
+    marginBottom: 5,
+  },
+
+  // ── Entries ──────────────────────────────────────────
+  entry: { marginBottom: 7 },
+  entryTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  entryOrg: { fontFamily: "Helvetica-Bold", fontSize: 10 },
+  entryDates: { fontSize: 9, color: "#555" },
+  entryRole: { fontSize: 9.5, fontFamily: "Helvetica-Oblique", color: "#333", marginBottom: 2 },
+  entryTech: { fontSize: 9, color: "#555", marginBottom: 2 },
+
+  // ── Bullets ──────────────────────────────────────────
+  bullet: { flexDirection: "row", paddingLeft: 8, marginBottom: 2 },
+  bulletDot: { fontSize: 9.5, color: "#333", marginRight: 5 },
+  bulletText: { flex: 1, fontSize: 9.5, lineHeight: 1.45, color: "#111" },
+
+  // ── Skills ───────────────────────────────────────────
+  skillsText: { fontSize: 9.5, color: "#111", lineHeight: 1.6 },
+});
 
 function Bullets({ bullets }: { bullets: string[] }) {
   return (
@@ -71,77 +89,83 @@ function Bullets({ bullets }: { bullets: string[] }) {
 }
 
 export function ResumeDocument({ data }: { data: TailoredResumeData }) {
-  const contactParts = [data.email, data.phone, data.linkedin, data.github].filter(Boolean);
+  const contactParts = [data.email, data.phone, data.linkedin, data.github].filter(Boolean) as string[];
 
   return (
     <Document>
       <Page size="LETTER" style={s.page}>
 
-        {/* Header */}
-        <Text style={s.name}>{data.name}</Text>
-        <View style={s.contact}>
-          {contactParts.map((part, i) => (
-            <Text key={i} style={s.contactItem}>{part}</Text>
-          ))}
+        {/* ── Header ── */}
+        <View style={s.header}>
+          <Text style={s.name}>{data.name}</Text>
+          <View style={s.contactRow}>
+            {contactParts.map((part, i) => (
+              <View key={i} style={{ flexDirection: "row", alignItems: "center" }}>
+                {i > 0 && <Text style={s.contactSep}>  |  </Text>}
+                <Text style={s.contactItem}>{part}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={s.headerDivider} />
         </View>
-        <View style={s.divider} />
 
-        {/* Experience */}
+        {/* ── Education (top for students) ── */}
+        {data.education.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Education</Text>
+            {data.education.map((edu, i) => (
+              <View key={i} style={s.entry}>
+                <View style={s.entryTopRow}>
+                  <Text style={s.entryOrg}>{edu.school}</Text>
+                  <Text style={s.entryDates}>{edu.dates}</Text>
+                </View>
+                <Text style={s.entryRole}>
+                  {edu.degree}{edu.gpa ? `  —  GPA: ${edu.gpa}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── Experience ── */}
         {data.experience.length > 0 && (
           <View style={s.section}>
-            <SectionTitle title="Experience" />
+            <Text style={s.sectionTitle}>Experience</Text>
             {data.experience.map((exp, i) => (
               <View key={i} style={s.entry}>
-                <View style={s.entryRow}>
-                  <Text style={s.entryTitle}>{exp.company}</Text>
+                <View style={s.entryTopRow}>
+                  <Text style={s.entryOrg}>{exp.company}</Text>
                   <Text style={s.entryDates}>{exp.dates}</Text>
                 </View>
-                <Text style={s.entrySubtitle}>{exp.role}</Text>
+                <Text style={s.entryRole}>{exp.role}</Text>
                 <Bullets bullets={exp.bullets} />
               </View>
             ))}
           </View>
         )}
 
-        {/* Projects */}
+        {/* ── Projects ── */}
         {data.projects && data.projects.length > 0 && (
           <View style={s.section}>
-            <SectionTitle title="Projects" />
+            <Text style={s.sectionTitle}>Projects</Text>
             {data.projects.map((proj, i) => (
               <View key={i} style={s.entry}>
-                <View style={s.entryRow}>
-                  <Text style={s.entryTitle}>
-                    {proj.name}{proj.tech ? `  |  ${proj.tech}` : ""}
-                  </Text>
-                  {proj.dates && <Text style={s.entryDates}>{proj.dates}</Text>}
+                <View style={s.entryTopRow}>
+                  <Text style={s.entryOrg}>{proj.name}</Text>
+                  {proj.dates ? <Text style={s.entryDates}>{proj.dates}</Text> : null}
                 </View>
+                {proj.tech ? <Text style={s.entryTech}>{proj.tech}</Text> : null}
                 <Bullets bullets={proj.bullets} />
               </View>
             ))}
           </View>
         )}
 
-        {/* Education */}
-        {data.education.length > 0 && (
-          <View style={s.section}>
-            <SectionTitle title="Education" />
-            {data.education.map((edu, i) => (
-              <View key={i} style={s.entry}>
-                <View style={s.entryRow}>
-                  <Text style={s.entryTitle}>{edu.school}</Text>
-                  <Text style={s.entryDates}>{edu.dates}</Text>
-                </View>
-                <Text style={s.entrySubtitle}>{edu.degree}{edu.gpa ? `  ·  GPA ${edu.gpa}` : ""}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Skills */}
+        {/* ── Skills ── */}
         {data.skills.length > 0 && (
           <View style={s.section}>
-            <SectionTitle title="Skills" />
-            <Text style={s.skillsText}>{data.skills.join("  ·  ")}</Text>
+            <Text style={s.sectionTitle}>Skills</Text>
+            <Text style={s.skillsText}>{data.skills.join("   ·   ")}</Text>
           </View>
         )}
 
