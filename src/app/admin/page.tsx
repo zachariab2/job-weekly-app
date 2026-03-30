@@ -2,7 +2,7 @@ import { requireOwner } from "@/lib/auth/session";
 import { db, users, subscriptions, reports, profiles, jobPreferences } from "@/lib/db";
 import { desc } from "drizzle-orm";
 import { AddContactForm } from "./add-contact-form";
-import { deleteContactAction } from "./actions";
+import { deleteContactAction, activateUserAction, deleteUserAction } from "./actions";
 
 export default async function AdminPage() {
   await requireOwner();
@@ -92,6 +92,22 @@ export default async function AdminPage() {
                       renews {new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </p>
                   )}
+                  {sub?.status !== "active" && (
+                    <form action={activateUserAction}>
+                      <input type="hidden" name="userId" value={user.id} />
+                      <button type="submit" className="text-xs text-green-400/60 hover:text-green-400 transition px-2 py-1">
+                        Activate
+                      </button>
+                    </form>
+                  )}
+                  <form action={deleteUserAction}>
+                    <input type="hidden" name="userId" value={user.id} />
+                    <button type="submit"
+                      className="text-xs text-red-400/50 hover:text-red-400 transition px-2 py-1"
+                      onClick={(e) => { if (!confirm(`Delete ${user.email}? This cannot be undone.`)) e.preventDefault(); }}>
+                      Delete
+                    </button>
+                  </form>
                 </div>
               </div>
 
