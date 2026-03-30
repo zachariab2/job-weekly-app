@@ -84,7 +84,7 @@ export function TailoredResumeButton({ recId, company }: { recId: number; compan
 
       {state.status === "done" && state.changes.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/25 mb-1.5">What we changed</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/25 mb-1.5">Why we changed it</p>
           <ul className="space-y-1.5">
             {state.changes.map((c, i) => (
               <li key={i} className="flex gap-2 text-xs text-white/55 leading-relaxed">

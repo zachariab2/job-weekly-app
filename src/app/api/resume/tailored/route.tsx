@@ -104,9 +104,9 @@ Return this exact JSON (education is required):
   ],
   "skills": ["most relevant to ${role} at ${company} first", "..."],
   "changes": [
-    "past-tense description of specific change 1 — reference actual project/skill names from the resume",
-    "past-tense description of specific change 2",
-    "past-tense description of specific change 3"
+    "one sentence explaining a specific change and why it helps for this role at this company — e.g. 'Led with your TensorFlow work at [Company] because Databricks runs its ML infra on TF'",
+    "another specific change + why it matters for this application",
+    "another specific change + why it matters for this application"
   ]
 }`,
       },
