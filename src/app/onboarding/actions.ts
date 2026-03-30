@@ -95,11 +95,24 @@ export async function uploadResumeAction(formData: FormData) {
     resumeUrl = filePath;
   }
 
+  // Parse text from the buffer directly (avoids serverless URL-fetch issues later)
+  let resumeText: string | null = null;
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const pdfParseModule = await import("pdf-parse");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
+    const parsed = await pdfParse(buffer);
+    resumeText = parsed.text?.trim() || null;
+  } catch {
+    // Non-fatal — text extraction failed, tailored resumes won't work but upload succeeds
+  }
+
   const existing = await db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) });
   if (existing) {
-    await db.update(profiles).set({ resumeUrl, updatedAt: new Date() }).where(eq(profiles.id, existing.id));
+    await db.update(profiles).set({ resumeUrl, resumeText, updatedAt: new Date() }).where(eq(profiles.id, existing.id));
   } else {
-    await db.insert(profiles).values({ userId: user.id, resumeUrl });
+    await db.insert(profiles).values({ userId: user.id, resumeUrl, resumeText });
   }
 
   return { status: "ok" as const };

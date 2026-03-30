@@ -23,6 +23,7 @@ export const profiles = sqliteTable("profiles", {
   graduation: text("graduation"),
   degreeLevel: text("degree_level"),
   resumeUrl: text("resume_url"),
+  resumeText: text("resume_text"),
   linkedin: text("linkedin"),
   portfolio: text("portfolio"),
   github: text("github"),

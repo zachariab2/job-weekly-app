@@ -19,3 +19,6 @@ try {
 
 export const db = drizzle(client, { schema });
 export * from "./schema";
+
+// Auto-migrate: add resume_text column if it doesn't exist yet
+client.execute("ALTER TABLE profiles ADD COLUMN resume_text text").catch(() => {});

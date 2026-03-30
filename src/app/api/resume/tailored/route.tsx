@@ -35,20 +35,9 @@ export async function GET(req: NextRequest) {
     return new NextResponse("No resume uploaded. Please upload your resume on the profile page first.", { status: 400 });
   }
 
-  // Try fetching the blob directly first to verify access
-  if (profile.resumeUrl.startsWith("http")) {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    const probe = await fetch(profile.resumeUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (!probe.ok) {
-      return new NextResponse(`Resume fetch failed: ${probe.status} ${probe.statusText}`, { status: 400 });
-    }
-  }
-
-  const resumeText = await getResumeText(profile.resumeUrl);
+  const resumeText = profile.resumeText ?? await getResumeText(profile.resumeUrl);
   if (!resumeText) {
-    return new NextResponse("Could not parse your resume. Please re-upload it on the profile page.", { status: 400 });
+    return new NextResponse("Could not read your resume. Please re-upload it on the profile page.", { status: 400 });
   }
 
   const tailored = await tailorResume(resumeText, rec.company, rec.role, user.firstName, user.email);

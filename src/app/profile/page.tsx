@@ -30,13 +30,19 @@ export default async function ProfilePage() {
             <div className="flex items-start gap-4">
               {profile?.resumeUrl && (
                 <a href="/api/resume/download" target="_blank" rel="noreferrer" className="shrink-0 group">
-                  <div className="w-10 h-13 rounded border border-white/15 bg-white/[0.04] flex flex-col items-center justify-center gap-1 px-2 py-2 hover:border-white/30 hover:bg-white/[0.07] transition">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white/40 group-hover:text-white/70 transition">
-                      <path d="M3 2a1 1 0 011-1h6l3 3v10a1 1 0 01-1 1H4a1 1 0 01-1-1V2z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-                      <path d="M9 1v3h3" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
-                      <path d="M5.5 8.5h5M5.5 10.5h3" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                    </svg>
-                    <span className="text-[8px] text-white/25 group-hover:text-white/50 transition leading-none">PDF</span>
+                  <div className="w-14 h-[72px] rounded-lg border border-white/15 bg-white/[0.06] hover:border-white/30 hover:bg-white/[0.09] transition overflow-hidden flex flex-col px-2 pt-2 pb-1.5 gap-1">
+                    {/* Mock resume lines */}
+                    <div className="h-1.5 w-8 rounded-sm bg-white/40" />
+                    <div className="h-px w-full bg-white/10 my-0.5" />
+                    <div className="space-y-1 flex-1">
+                      <div className="h-px w-full bg-white/20 rounded-full" />
+                      <div className="h-px w-4/5 bg-white/15 rounded-full" />
+                      <div className="h-px w-full bg-white/20 rounded-full" />
+                      <div className="h-px w-3/5 bg-white/15 rounded-full" />
+                      <div className="h-px w-full bg-white/20 rounded-full" />
+                      <div className="h-px w-4/5 bg-white/15 rounded-full" />
+                    </div>
+                    <span className="text-[7px] text-white/25 group-hover:text-white/50 transition text-center leading-none">view</span>
                   </div>
                 </a>
               )}

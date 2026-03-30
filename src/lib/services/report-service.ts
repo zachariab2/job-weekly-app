@@ -280,7 +280,8 @@ export async function generateReportForUser(userId: string) {
   if (!user) throw new Error("User not found for report generation");
 
   const resumePath = (profile as typeof profile & { resumeUrl?: string | null })?.resumeUrl ?? null;
-  const resumeText = await getResumeText(resumePath);
+  const storedText = (profile as typeof profile & { resumeText?: string | null })?.resumeText ?? null;
+  const resumeText = storedText ?? await getResumeText(resumePath);
 
   const blueprint = await buildBlueprint({ user, profile, prefs, applications: activeApplications, resumeText });
 
