@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OneMinuteCloser Jobs",
+  title: "JobWeekly",
   description:
     "Serious weekly job intelligence for ambitious students: companies, referrals, outreach, and resume guidance.",
 };

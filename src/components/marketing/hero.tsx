@@ -30,7 +30,7 @@ export function Hero() {
             Stop mass applying. Move with a plan.
           </h1>
           <p className="max-w-2xl text-lg text-white/70">
-            OneMinuteCloser Weekly builds a personalized job strategy every 3 days — curated roles,
+            JobWeekly builds a personalized job strategy every 3 days — curated roles,
             alumni referral paths, outreach templates, and resume edits. Built for ambitious CS and
             business students who want a real edge.
           </p>

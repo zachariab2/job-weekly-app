@@ -19,7 +19,7 @@ export default function Home() {
         <ConversionFooter />
       </main>
       <footer className="mt-16 border-t border-white/5 py-10 text-center text-xs text-white/40">
-        © {new Date().getFullYear()} OneMinuteCloser Weekly. Built for ambitious students.
+        © {new Date().getFullYear()} JobWeekly. Built for ambitious students.
       </footer>
     </div>
   );
