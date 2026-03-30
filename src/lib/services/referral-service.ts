@@ -33,8 +33,10 @@ export async function applyReferralBonuses(ownerUserId: string) {
   }
 
   const bonusWeeks = earnedWeeks - (ownerSub.bonusWeeksApplied ?? 0);
-  const baseEnd = ownerSub.currentPeriodEnd ?? new Date();
-  const newPeriodEnd = new Date(baseEnd.getTime() + bonusWeeks * WEEK_MS);
+  // Always extend from the later of: the known period end or right now.
+  // Guards against stale currentPeriodEnd (e.g. Stripe renewed but DB hasn't synced).
+  const baseEnd = Math.max((ownerSub.currentPeriodEnd ?? new Date()).getTime(), Date.now());
+  const newPeriodEnd = new Date(baseEnd + bonusWeeks * WEEK_MS);
 
   // Extend the Stripe subscription trial so they aren't billed during the free week(s)
   try {
