@@ -6,17 +6,17 @@ const testimonials = [
   {
     quote: "Got my Databricks interview from an alumni intro in week two. Worth it.",
     name: "Alex M.",
-    school: "Columbia CS '26",
+    school: "BU CS '26",
   },
   {
     quote: "Stopped cold-applying after the first report. The referral paths are the real product.",
     name: "Priya S.",
-    school: "UPenn Wharton '25",
+    school: "St. John's '25",
   },
   {
     quote: "My resume bullet for Jane Street was rewritten in 10 minutes. I got a callback.",
     name: "Jordan T.",
-    school: "NYU Stern '26",
+    school: "Colgate '26",
   },
 ];
 
