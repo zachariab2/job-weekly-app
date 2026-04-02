@@ -34,6 +34,29 @@ function makeCode() {
   return randomBytes(3).toString("hex").toUpperCase();
 }
 
+export async function cancelSubscriptionAction(): Promise<{ error?: string }> {
+  const user = await requireUser();
+  const subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
+
+  if (!subscription?.stripeSubscriptionId) {
+    return { error: "No active subscription found." };
+  }
+
+  const stripe = getStripeClient();
+  try {
+    await stripe.subscriptions.update(subscription.stripeSubscriptionId, { cancel_at_period_end: true });
+    await db.update(subscriptions)
+      .set({ status: "canceled" })
+      .where(eq(subscriptions.userId, user.id));
+    revalidatePath("/settings");
+    revalidatePath("/billing");
+    return {};
+  } catch (err) {
+    console.error("[cancelSubscription] Stripe error:", err instanceof Error ? err.message : String(err));
+    return { error: "Failed to cancel. Please try again or contact support." };
+  }
+}
+
 export async function startCheckoutSession() {
   const user = await requireUser();
   const subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });

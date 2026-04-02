@@ -35,16 +35,16 @@ const ROLE_OPTIONS = [
 const JOB_TYPE_OPTIONS = ["Internship", "Co-op", "New Grad", "Full-time", "Contract"];
 
 const CITY_OPTIONS = [
-  "New York, NY",
-  "San Francisco, CA",
-  "Seattle, WA",
-  "Boston, MA",
-  "Austin, TX",
-  "Los Angeles, CA",
-  "Chicago, IL",
-  "Washington, DC",
-  "Denver, CO",
-  "Atlanta, GA",
+  "New York",
+  "San Francisco",
+  "Seattle",
+  "Boston",
+  "Austin",
+  "Los Angeles",
+  "Chicago",
+  "Washington DC",
+  "Denver",
+  "Atlanta",
   "Remote",
 ];
 
@@ -52,6 +52,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<Record<string, string>>({});
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeValid, setResumeValid] = useState<boolean | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -61,29 +62,40 @@ export default function OnboardingPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function next() { setError(null); setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1)); }
+  function next() {
+    setError(null);
+    if (step === 2 && (!form.firstName?.trim() || !form.lastName?.trim())) {
+      setError("Please enter your first and last name before continuing.");
+      return;
+    }
+    setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
+  }
   function back() { setError(null); setStep((s) => Math.max(s - 1, 0)); }
 
   async function handleFile(file: File | null) {
     if (!file) return;
     setResumeFile(file);
+    setResumeValid(null);
     setIsParsing(true);
     try {
       const fd = new FormData();
       fd.append("resume", file);
-      const { fields } = await parseResumeFieldsAction(fd);
-      setForm((prev) => ({
-        ...prev,
-        ...(fields.firstName ? { firstName: fields.firstName } : {}),
-        ...(fields.lastName ? { lastName: fields.lastName } : {}),
-        ...(fields.university ? { university: fields.university } : {}),
-        ...(fields.major ? { major: fields.major } : {}),
-        ...(fields.graduation ? { graduation: fields.graduation } : {}),
-        ...(fields.linkedin ? { linkedin: fields.linkedin } : {}),
-        ...(fields.github ? { github: fields.github } : {}),
-      }));
+      const { fields, isResume } = await parseResumeFieldsAction(fd);
+      setResumeValid(isResume);
+      if (isResume) {
+        setForm((prev) => ({
+          ...prev,
+          ...(fields.firstName ? { firstName: fields.firstName } : {}),
+          ...(fields.lastName ? { lastName: fields.lastName } : {}),
+          ...(fields.university ? { university: fields.university } : {}),
+          ...(fields.major ? { major: fields.major } : {}),
+          ...(fields.graduation ? { graduation: fields.graduation } : {}),
+          ...(fields.linkedin ? { linkedin: fields.linkedin } : {}),
+          ...(fields.github ? { github: fields.github } : {}),
+        }));
+      }
     } catch {
-      // parse failed silently — user fills manually
+      setResumeValid(true); // on error allow through
     } finally {
       setIsParsing(false);
     }
@@ -194,6 +206,16 @@ export default function OnboardingPage() {
                 Resume is required — we need it to tailor suggestions per job.
               </p>
             )}
+            {resumeFile && resumeValid === false && (
+              <p className="text-xs text-red-400 text-center">
+                That doesn&apos;t look like a resume. Please upload your actual resume PDF.
+              </p>
+            )}
+            {resumeFile && resumeValid === true && (
+              <p className="text-xs text-emerald-400/70 text-center">
+                Resume verified — we&apos;ll auto-fill your info on the next step.
+              </p>
+            )}
           </div>
         )}
 
@@ -235,23 +257,9 @@ export default function OnboardingPage() {
               <p className="mt-1 text-sm text-white/50">The more specific, the better your matches.</p>
             </div>
             <div className="space-y-4">
-              <SelectField
-                label="Target role"
-                name="targetRole"
-                value={form.targetRole}
-                onChange={set}
-                options={ROLE_OPTIONS}
-                placeholder="Select your target role"
-              />
+              <MultiPillGroup label="Target role(s)" name="targetRole" options={ROLE_OPTIONS} value={form.targetRole} onChange={set} />
               <Field label="Industries" name="industries" value={form.industries} onChange={set} placeholder="AI / ML, Fintech, Developer Tools" />
-              <SelectField
-                label="Job type"
-                name="jobTypes"
-                value={form.jobTypes}
-                onChange={set}
-                options={JOB_TYPE_OPTIONS}
-                placeholder="Select one"
-              />
+              <MultiPillGroup label="Job type(s)" name="jobTypes" options={JOB_TYPE_OPTIONS} value={form.jobTypes} onChange={set} />
               <MultiPillGroup label="Preferred locations" name="locations" options={CITY_OPTIONS} value={form.locations} onChange={set} />
               <PillGroup label="Remote preference" name="relocation" options={["On-site", "Hybrid", "Remote", "Any"]} value={form.relocation} onChange={set} />
               <Field label="Dream companies (optional)" name="dreamCompanies" value={form.dreamCompanies} onChange={set} placeholder="Stripe, Figma, Notion" />
@@ -349,8 +357,8 @@ export default function OnboardingPage() {
           ) : <span />}
 
           {step < TOTAL_STEPS - 1 ? (
-            <Button onClick={next} disabled={(step === 1 && !resumeFile) || isParsing}>
-              {step === 0 ? "Get started →" : "Continue →"}
+            <Button onClick={next} disabled={(step === 1 && (!resumeFile || resumeValid === false)) || isParsing}>
+              {isParsing ? "Checking…" : step === 0 ? "Get started →" : "Continue →"}
             </Button>
           ) : (
             <Button onClick={submit} disabled={isPending}>

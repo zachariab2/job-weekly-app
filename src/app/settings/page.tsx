@@ -4,6 +4,7 @@ import { db, subscriptions, referralCodes, notificationPreferences } from "@/lib
 import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "../billing/actions";
 import { updateNotificationPrefsAction } from "./actions";
+import { CancelButton } from "./cancel-button";
 import Link from "next/link";
 
 export default async function SettingsPage() {
@@ -123,7 +124,9 @@ export default async function SettingsPage() {
                 <p className="text-xs text-white/40 mt-0.5">Next charge {nextChargeDate}</p>
               )}
             </div>
-            {subscription?.status !== "active" && (
+            {subscription?.status === "active" ? (
+              <CancelButton />
+            ) : (
               <form action={startCheckoutSession}>
                 <button className="rounded-xl bg-[var(--accent-strong)] px-4 py-2 text-sm font-semibold text-black hover:opacity-90 transition">
                   Activate $9.99/week

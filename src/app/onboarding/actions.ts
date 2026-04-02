@@ -20,9 +20,11 @@ type ParsedResumeFields = {
   github?: string;
 };
 
-export async function parseResumeFieldsAction(formData: FormData): Promise<{ fields: ParsedResumeFields }> {
+export async function parseResumeFieldsAction(
+  formData: FormData,
+): Promise<{ fields: ParsedResumeFields; isResume: boolean }> {
   const file = formData.get("resume") as File | null;
-  if (!file || file.size === 0) return { fields: {} };
+  if (!file || file.size === 0) return { fields: {}, isResume: false };
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -31,24 +33,26 @@ export async function parseResumeFieldsAction(formData: FormData): Promise<{ fie
     const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
     const parsed = await pdfParse(buffer);
     const text = parsed.text?.slice(0, 3000) ?? "";
-    if (!text) return { fields: {} };
+    if (!text) return { fields: {}, isResume: false };
 
     const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) return { fields: {} };
+    if (!apiKey) return { fields: {}, isResume: true }; // can't check without API key, allow through
 
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      max_tokens: 300,
+      max_tokens: 350,
       messages: [{
         role: "user",
-        content: `Extract the following fields from this resume. Return valid JSON only, no explanation. Use null for missing fields.
+        content: `Analyze this document. Return valid JSON only, no explanation.
 
-Fields: firstName, lastName, university, major, graduation (e.g. "May 2026"), linkedin (full URL), github (username only, no URL)
+Return these fields:
+- isResume: true if this is a student or professional resume/CV, false if it is anything else (essay, article, contract, homework, etc.)
+- firstName, lastName, university, major, graduation (e.g. "May 2026"), linkedin (full URL), github (username only) — all null if not found or not a resume
 
-Resume:
+Document:
 ${text}`,
       }],
     });
@@ -57,8 +61,11 @@ ${text}`,
     const json = raw.replace(/```json|```/g, "").trim();
     const data = JSON.parse(json);
 
+    const isResume = data.isResume === true;
+
     return {
-      fields: {
+      isResume,
+      fields: isResume ? {
         firstName: data.firstName || undefined,
         lastName: data.lastName || undefined,
         university: data.university || undefined,
@@ -66,10 +73,10 @@ ${text}`,
         graduation: data.graduation || undefined,
         linkedin: data.linkedin || undefined,
         github: data.github || undefined,
-      },
+      } : {},
     };
   } catch {
-    return { fields: {} };
+    return { fields: {}, isResume: true }; // on parse error, allow through rather than block
   }
 }
 

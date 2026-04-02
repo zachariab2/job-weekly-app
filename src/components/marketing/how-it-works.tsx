@@ -3,19 +3,25 @@ import { Card } from "../ui/card";
 
 const steps = [
   {
-    title: "1. Premium onboarding",
+    number: "01",
+    title: "Tell us who you are",
     description:
-      "Multi-step intake captures resume, priorities, constraints, and networking preferences with autosave and review.",
+      "Upload your resume and fill out a 5-minute profile: target roles, companies you admire, location, job type, and what matters most. We save everything — no repeat inputs.",
+    detail: "Resume · Priorities · Location · Role type",
   },
   {
-    title: "2. Weekly intelligence",
+    number: "02",
+    title: "Your batch drops every 3 days",
     description:
-      "Each Tuesday a structured report drops via dashboard, PDF, email, and text with prioritized opportunities.",
+      "5 roles arrive in your dashboard, each with a reason it was picked for you, the alumni and adjacent contacts who can get you in, resume bullets rewritten for that specific company, and a ready-to-send outreach message.",
+    detail: "Dashboard · Email · SMS alert",
   },
   {
-    title: "3. Act with clarity",
+    number: "03",
+    title: "Execute without second-guessing",
     description:
-      "Alumni paths, outreach scripts, resume changes, and application tracker keep momentum without chaos.",
+      "Open the role, copy the outreach, download your tailored resume, and apply. Track your pipeline in the applications tab. Earn free weeks by referring classmates.",
+    detail: "Apply · Track · Refer · Repeat",
   },
 ];
 
@@ -23,15 +29,22 @@ export function HowItWorks() {
   return (
     <section id="how" className="space-y-10">
       <SectionHeading
-        eyebrow="OPERATING SYSTEM"
-        title="Serious students, structured job searches"
-        description="The entire experience is designed to feel like a private career team working behind the scenes for you."
+        eyebrow="HOW IT WORKS"
+        title="Three steps. Real results."
+        description="Every piece is designed to get you from inbox to interview — not from inbox to another tab you forget about."
       />
       <div className="grid gap-6 md:grid-cols-3">
         {steps.map((step) => (
-          <Card key={step.title} className="space-y-3">
-            <p className="text-sm text-white/50">{step.title}</p>
-            <p className="text-base text-white/80">{step.description}</p>
+          <Card key={step.number} className="space-y-4 relative">
+            <p className="text-4xl font-bold text-white/8 select-none absolute top-4 right-5">
+              {step.number}
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
+              Step {step.number}
+            </p>
+            <p className="text-base font-semibold text-white">{step.title}</p>
+            <p className="text-sm text-white/60 leading-relaxed">{step.description}</p>
+            <p className="text-xs text-white/30 pt-1 border-t border-white/5">{step.detail}</p>
           </Card>
         ))}
       </div>

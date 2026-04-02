@@ -1,5 +1,6 @@
 import { MarketingHeader } from "@/components/layout/marketing-header";
 import { Hero } from "@/components/marketing/hero";
+import { Comparison } from "@/components/marketing/comparison";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { ReportPreview } from "@/components/marketing/report-preview";
 import { Pricing } from "@/components/marketing/pricing";
@@ -12,6 +13,7 @@ export default function Home() {
       <MarketingHeader />
       <main className="mx-auto mt-28 flex w-full max-w-6xl flex-col gap-20 px-6">
         <Hero />
+        <Comparison />
         <HowItWorks />
         <ReportPreview />
         <Pricing />
