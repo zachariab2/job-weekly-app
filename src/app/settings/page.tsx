@@ -65,17 +65,8 @@ export default async function SettingsPage() {
         {/* Notifications */}
         <form action={updateNotificationPrefsAction} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <p className="text-[11px] uppercase tracking-widest text-white/30 mb-4">Notifications</p>
-          <p className="text-xs text-white/40 mb-4">Get notified every 3 days when your fresh batch of jobs is ready.</p>
+          <p className="text-xs text-white/40 mb-4">Get a text every 3 days when your fresh batch of jobs is ready.</p>
           <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                name="emailEnabled"
-                defaultChecked={notifPrefs?.emailEnabled ?? false}
-                className="size-4 rounded accent-[var(--accent-strong)]"
-              />
-              <span className="text-sm text-white/80">Email notifications</span>
-            </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -85,7 +76,7 @@ export default async function SettingsPage() {
               />
               <span className="text-sm text-white/80">SMS notifications</span>
             </label>
-            {(notifPrefs?.smsEnabled) && (
+            {notifPrefs?.smsEnabled && (
               <div className="pl-7">
                 <input
                   type="tel"

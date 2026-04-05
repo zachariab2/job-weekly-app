@@ -283,16 +283,15 @@ export default function OnboardingPage() {
                 onChange={set}
               />
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-white/30 mb-2">How to notify me</p>
+                <p className="text-[11px] uppercase tracking-wider text-white/30 mb-2">Notify me via SMS</p>
                 <div className="flex gap-2">
-                  {(["Email", "SMS"] as const).map((ch) => {
-                    const key = ch === "Email" ? "emailNotif" : "smsNotif";
-                    const active = form[key] === "true";
+                  {(["Yes", "No"] as const).map((ch) => {
+                    const active = ch === "Yes" ? form.smsNotif === "true" : form.smsNotif !== "true";
                     return (
                       <button
                         key={ch}
                         type="button"
-                        onClick={() => set(key, active ? "false" : "true")}
+                        onClick={() => set("smsNotif", ch === "Yes" ? "true" : "false")}
                         className={`rounded-full border px-4 py-1.5 text-sm transition ${active ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/10 text-[var(--accent-strong)]" : "border-white/15 text-white/50 hover:border-white/30"}`}
                       >
                         {ch}
