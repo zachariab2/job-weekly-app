@@ -272,37 +272,10 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-semibold text-white">Notifications</h1>
-              <p className="mt-1 text-sm text-white/50">We&apos;ll ping you when new matching jobs drop. You control when and how.</p>
+              <p className="mt-1 text-sm text-white/50">We&apos;ll let you know when new jobs drop. More channels coming soon.</p>
             </div>
-            <div className="space-y-5">
-              <PillGroup
-                label="Notify me when this many unactioned jobs are waiting"
-                name="notificationThreshold"
-                options={["1", "3", "5", "10", "Never"]}
-                value={form.notificationThreshold}
-                onChange={set}
-              />
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-white/30 mb-2">Notify me via SMS</p>
-                <div className="flex gap-2">
-                  {(["Yes", "No"] as const).map((ch) => {
-                    const active = ch === "Yes" ? form.smsNotif === "true" : form.smsNotif !== "true";
-                    return (
-                      <button
-                        key={ch}
-                        type="button"
-                        onClick={() => set("smsNotif", ch === "Yes" ? "true" : "false")}
-                        className={`rounded-full border px-4 py-1.5 text-sm transition ${active ? "border-[var(--accent-strong)] bg-[var(--accent-strong)]/10 text-[var(--accent-strong)]" : "border-white/15 text-white/50 hover:border-white/30"}`}
-                      >
-                        {ch}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {form.smsNotif === "true" && (
-                <Field label="Phone number" name="phone" value={form.phone} onChange={set} placeholder="+1 (555) 000-0000" />
-              )}
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-sm text-white/60">Notifications are being set up — you&apos;ll always be able to check your dashboard for fresh batches every 3 days.</p>
             </div>
           </div>
         )}
