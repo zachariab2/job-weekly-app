@@ -1,14 +1,21 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
-import { getAllActiveJobsForUser } from "@/lib/services/report-service";
+import { getAllActiveJobsForUser, getLatestReport } from "@/lib/services/report-service";
 import { setApplicationStatusAction } from "./actions";
 import { TailoredResumeButton } from "./tailored-resume-button";
 import { GenerateReportButton } from "./generate-report-button";
 
 export default async function ApplicationsPage() {
   const user = await requireActiveUser();
-  const rows = await getAllActiveJobsForUser(user.id);
+  const [rows, latestReport] = await Promise.all([
+    getAllActiveJobsForUser(user.id),
+    getLatestReport(user.id),
+  ]);
   const totalUntouched = rows.filter((r) => r.currentStatus === "untouched").length;
+  const latestBatchCount = latestReport?.recommendations?.length ?? 0;
+  const latestBatchDate = latestReport?.generatedAt
+    ? new Date(latestReport.generatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : null;
 
   return (
     <AppShell active="/applications" user={user}>
@@ -17,7 +24,10 @@ export default async function ApplicationsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-white">Applications</h1>
           <p className="mt-1 text-sm text-white/50">
-            {rows.length} curated roles · {totalUntouched} not yet started
+            {rows.length} active roles · {totalUntouched} not yet started
+            {latestBatchDate && (
+              <span className="ml-2 text-white/30">· Latest batch {latestBatchDate} ({latestBatchCount} jobs)</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-4 text-xs text-white/35">
@@ -77,8 +87,8 @@ export default async function ApplicationsPage() {
                 )}
                 <p className="text-sm text-white/50">{rec.role}</p>
                 {contacts.length === 0 && (
-                  <span className="inline-flex mt-1 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">
-                    Contact pending
+                  <span className="inline-flex mt-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
+                    No contacts yet
                   </span>
                 )}
                 <p className="text-xs text-white/30 leading-relaxed mt-2">{rec.reasoning}</p>

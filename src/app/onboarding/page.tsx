@@ -267,15 +267,27 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: Notifications */}
+        {/* Step 4: Almost done */}
         {step === 4 && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Notifications</h1>
-              <p className="mt-1 text-sm text-white/50">We&apos;ll let you know when new jobs drop. More channels coming soon.</p>
+              <h1 className="text-2xl font-semibold text-white">You&apos;re almost in.</h1>
+              <p className="mt-1 text-sm text-white/50">Here&apos;s exactly what happens next.</p>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-sm text-white/60">Notifications are being set up — you&apos;ll always be able to check your dashboard for fresh batches every 3 days.</p>
+            <div className="space-y-3">
+              {[
+                { step: "1", title: "Your first batch generates", body: "5 roles matched to your resume and preferences. Alumni referral paths and outreach templates included." },
+                { step: "2", title: "New batch every 3 days", body: "We refresh automatically. You'll always have fresh, relevant roles — no manual searching." },
+                { step: "3", title: "Tailor your resume per job", body: "One click rewrites your resume bullets for each company and downloads a clean PDF." },
+              ].map((item) => (
+                <div key={item.step} className="flex gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <span className="text-lg font-bold text-white/15 shrink-0">{item.step}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{item.title}</p>
+                    <p className="mt-0.5 text-xs text-white/50 leading-relaxed">{item.body}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
