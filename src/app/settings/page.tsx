@@ -3,7 +3,6 @@ import { requireActiveUser } from "@/lib/auth/session";
 import { db, subscriptions, referralCodes, notificationPreferences } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "../billing/actions";
-import { updateNotificationPrefsAction } from "./actions";
 import { CancelButton } from "./cancel-button";
 import Link from "next/link";
 

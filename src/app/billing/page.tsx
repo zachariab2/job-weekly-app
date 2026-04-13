@@ -6,6 +6,7 @@ import { db, subscriptions, referralCodes } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "./actions";
 import { CopyLinkButton } from "./copy-link-button";
+import { BillingPolling } from "./billing-polling";
 import { redirect } from "next/navigation";
 
 type BillingPageProps = {
@@ -60,6 +61,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
           </form>
         )}
       </div>
+      {isCheckoutSuccess && subscription?.status !== "active" && <BillingPolling />}
       {statusMessage && (
         <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
           {statusMessage}

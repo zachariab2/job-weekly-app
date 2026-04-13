@@ -1,8 +1,9 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
 import { getAllActiveJobsForUser } from "@/lib/services/report-service";
-import { setApplicationStatusAction, generateReportAction } from "./actions";
+import { setApplicationStatusAction } from "./actions";
 import { TailoredResumeButton } from "./tailored-resume-button";
+import { GenerateReportButton } from "./generate-report-button";
 
 export default async function ApplicationsPage() {
   const user = await requireActiveUser();
@@ -42,14 +43,7 @@ export default async function ApplicationsPage() {
         {rows.length === 0 && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-12 text-center space-y-4">
             <p className="text-sm text-white/35">No job recommendations yet.</p>
-            <form action={generateReportAction}>
-              <button
-                type="submit"
-                className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition"
-              >
-                Generate my first report
-              </button>
-            </form>
+            <GenerateReportButton />
           </div>
         )}
 
