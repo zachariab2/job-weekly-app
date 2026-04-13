@@ -147,6 +147,24 @@ REASON: <sentence>
   return { bullets, reason };
 }
 
+// ─── Resume skill extraction ──────────────────────────────────────────────────
+
+const SKILL_LIST = [
+  "Python","JavaScript","TypeScript","React","Node.js","Java","C++","C#","Go","Rust","Swift","Kotlin",
+  "SQL","PostgreSQL","MySQL","MongoDB","Redis","GraphQL","REST","AWS","GCP","Azure","Docker","Kubernetes",
+  "machine learning","deep learning","NLP","LLM","PyTorch","TensorFlow","scikit-learn","pandas","numpy",
+  "Next.js","Express","Django","FastAPI","Spring","Rails","Flutter","React Native",
+  "data engineering","data science","backend","frontend","full stack","distributed systems",
+  "Spark","Kafka","Airflow","dbt","Snowflake","BigQuery","Databricks",
+  "iOS","Android","mobile","embedded","systems","security","blockchain","fintech",
+];
+
+function extractTopSkills(resumeText: string, max = 4): string {
+  const lower = resumeText.toLowerCase();
+  const found = SKILL_LIST.filter((skill) => lower.includes(skill.toLowerCase()));
+  return found.slice(0, max).join(" ");
+}
+
 // ─── TTL ──────────────────────────────────────────────────────────────────────
 
 export const REPORT_TTL_MS = 1000 * 60 * 60 * 24 * 3; // 3 days
@@ -365,7 +383,8 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
 
   // Fetch real jobs from JSearch; fall back to catalog if unavailable
   const employmentTypes = toJSearchEmploymentTypes(prefs?.jobTypes ?? "internship");
-  const searchQuery = `${targetRole} ${industries}`;
+  const resumeSkills = resumeText ? extractTopSkills(resumeText) : "";
+  const searchQuery = `${targetRole} ${resumeSkills} ${industries}`.trim();
   const jsearchJobs = await fetchJSearchJobs(searchQuery, employmentTypes, 5);
 
   let jobData: Array<{

@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { db, users, profiles, jobPreferences, notificationPreferences } from "@/lib/db";
+import { db, users, profiles, jobPreferences, notificationPreferences, reports, reportRecommendations } from "@/lib/db";
 import { requireOwner } from "@/lib/auth/session";
 import { saveClientProfileAction, saveClientJobPrefsAction, saveClientNotifAction, refreshClientReportAction } from "./actions";
 
@@ -10,11 +10,16 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   const owner = await requireOwner();
   const { id } = await params;
 
-  const [user, profile, prefs, notif] = await Promise.all([
+  const [user, profile, prefs, notif, latestReport] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, id) }),
     db.query.profiles.findFirst({ where: eq(profiles.userId, id) }),
     db.query.jobPreferences.findFirst({ where: eq(jobPreferences.userId, id) }),
     db.query.notificationPreferences.findFirst({ where: eq(notificationPreferences.userId, id) }),
+    db.query.reports.findFirst({
+      where: eq(reports.userId, id),
+      orderBy: desc(reports.generatedAt),
+      with: { recommendations: true },
+    }),
   ]);
 
   if (!user) return notFound();
@@ -60,6 +65,29 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <Input name="remotePreference" label="Remote preference" defaultValue={prefs?.remotePreference ?? ""} />
             <Save />
           </form>
+        </Section>
+
+        <Section title={`Current report ${latestReport ? `— generated ${new Date(latestReport.generatedAt!).toLocaleDateString()}` : "— none yet"}`}>
+          {!latestReport || latestReport.recommendations.length === 0 ? (
+            <p className="text-xs text-white/40">No recommendations generated yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {latestReport.recommendations.map((rec) => (
+                <div key={rec.id} className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium text-white">{rec.company}</p>
+                    <p className="text-xs text-white/50">{rec.role}</p>
+                    <p className="text-xs text-white/30 mt-0.5 leading-relaxed">{rec.reasoning?.slice(0, 100)}{rec.reasoning && rec.reasoning.length > 100 ? "…" : ""}</p>
+                  </div>
+                  {rec.jobUrl && (
+                    <a href={rec.jobUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 shrink-0">
+                      View ↗
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </Section>
 
         <Section title="Notifications">
