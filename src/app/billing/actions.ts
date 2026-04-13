@@ -45,9 +45,9 @@ export async function cancelSubscriptionAction(): Promise<{ error?: string }> {
   const stripe = getStripeClient();
   try {
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, { cancel_at_period_end: true });
-    await db.update(subscriptions)
-      .set({ status: "canceled" })
-      .where(eq(subscriptions.userId, user.id));
+    // Don't update DB status here — let the webhook sync it.
+    // Setting "canceled" immediately would conflict with the next webhook event
+    // which would overwrite it back to "active" (subscription stays active until period end).
     revalidatePath("/settings");
     revalidatePath("/billing");
     return {};
