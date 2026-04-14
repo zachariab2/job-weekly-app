@@ -1,9 +1,36 @@
 "use server";
 
-import { db, notificationPreferences } from "@/lib/db";
+import { db, notificationPreferences, jobPreferences } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { requireActiveUser } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
+
+export async function updateJobPrefsAction(formData: FormData) {
+  const user = await requireActiveUser();
+
+  const targetRoles = (formData.get("targetRoles") as string | null)?.trim() || "";
+  const jobTypes = (formData.get("jobTypes") as string | null)?.trim() || "";
+  const industries = (formData.get("industries") as string | null)?.trim() || "";
+  const locations = (formData.get("locations") as string | null)?.trim() || "";
+  const remotePreference = (formData.get("remotePreference") as string | null)?.trim() || "";
+  const dreamCompanies = (formData.get("dreamCompanies") as string | null)?.trim() || "";
+
+  const existing = await db.query.jobPreferences.findFirst({
+    where: eq(jobPreferences.userId, user.id),
+  });
+
+  if (existing) {
+    await db.update(jobPreferences)
+      .set({ targetRoles, jobTypes, industries, locations, remotePreference, dreamCompanies })
+      .where(eq(jobPreferences.userId, user.id));
+  } else {
+    await db.insert(jobPreferences).values({
+      userId: user.id, targetRoles, jobTypes, industries, locations, remotePreference, dreamCompanies,
+    });
+  }
+
+  revalidatePath("/settings");
+}
 
 export async function updateNotificationPrefsAction(formData: FormData) {
   const user = await requireActiveUser();

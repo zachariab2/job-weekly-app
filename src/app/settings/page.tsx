@@ -1,20 +1,22 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
-import { db, subscriptions, referralCodes, notificationPreferences } from "@/lib/db";
+import { db, subscriptions, referralCodes, notificationPreferences, jobPreferences } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "../billing/actions";
+import { updateJobPrefsAction } from "./actions";
 import { CancelButton } from "./cancel-button";
 import Link from "next/link";
 
 export default async function SettingsPage() {
   const user = await requireActiveUser();
 
-  let subscription = null, codes: (typeof referralCodes)["$inferSelect"][] = [], notifPrefs = null;
+  let subscription = null, codes: (typeof referralCodes)["$inferSelect"][] = [], notifPrefs = null, prefs = null;
   try {
-    [subscription, codes, notifPrefs] = await Promise.all([
+    [subscription, codes, notifPrefs, prefs] = await Promise.all([
       db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) }),
       db.query.referralCodes.findMany({ where: eq(referralCodes.ownerUserId, user.id) }),
       db.query.notificationPreferences.findFirst({ where: eq(notificationPreferences.userId, user.id) }),
+      db.query.jobPreferences.findFirst({ where: eq(jobPreferences.userId, user.id) }),
     ]);
   } catch (err) {
     console.error("[SettingsPage] DB error:", err instanceof Error ? err.message : String(err));
@@ -67,11 +69,34 @@ export default async function SettingsPage() {
           <p className="text-xs text-white/40">Notifications coming soon. Your jobs refresh automatically every 3 days — check the dashboard anytime.</p>
         </div>
 
-        {/* Job filters */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-[11px] uppercase tracking-widest text-white/30 mb-4">Job Filters</p>
-          <p className="text-sm text-white/40">Edit your preferences from the Profile page to update the jobs we surface.</p>
-        </div>
+        {/* Job preferences */}
+        <form action={updateJobPrefsAction} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+          <p className="text-[11px] uppercase tracking-widest text-white/30">Job Preferences</p>
+          <p className="text-xs text-white/40">Changes take effect on your next report generation.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { name: "targetRoles", label: "Target roles", placeholder: "Software Engineer, Data Engineer", value: prefs?.targetRoles ?? "" },
+              { name: "jobTypes", label: "Job types", placeholder: "Internship, New Grad, Full-time", value: prefs?.jobTypes ?? "" },
+              { name: "industries", label: "Industries", placeholder: "AI / ML, Fintech, Developer Tools", value: prefs?.industries ?? "" },
+              { name: "locations", label: "Preferred locations", placeholder: "New York, San Francisco, Remote", value: prefs?.locations ?? "" },
+              { name: "remotePreference", label: "Remote preference", placeholder: "Remote, Hybrid, On-site", value: prefs?.remotePreference ?? "" },
+              { name: "dreamCompanies", label: "Dream companies", placeholder: "Stripe, Figma, Notion", value: prefs?.dreamCompanies ?? "" },
+            ].map((f) => (
+              <label key={f.name} className="space-y-1 text-xs text-white/50">
+                <span>{f.label}</span>
+                <input
+                  name={f.name}
+                  defaultValue={f.value}
+                  placeholder={f.placeholder}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-white/20 focus:border-white/30 focus:outline-none transition"
+                />
+              </label>
+            ))}
+          </div>
+          <button type="submit" className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition">
+            Save preferences
+          </button>
+        </form>
 
         {/* Billing */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-5">
