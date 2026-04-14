@@ -6,14 +6,16 @@ import { requireActiveUser } from "@/lib/auth/session";
 import { generateReportForUser } from "@/lib/services/report-service";
 import { and, eq } from "drizzle-orm";
 
-export async function generateReportAction(): Promise<void> {
+export async function generateReportAction(): Promise<{ error?: string }> {
   const user = await requireActiveUser();
   try {
     await generateReportForUser(user.id);
+    revalidatePath("/applications");
+    return {};
   } catch (err) {
     console.error("[generateReportAction] failed:", err instanceof Error ? err.message : String(err));
+    return { error: "Something went wrong generating your report. Please try again." };
   }
-  revalidatePath("/applications");
 }
 
 const allStatuses = ["untouched", "in-progress", "applied", "done", "dismissed"] as const;
