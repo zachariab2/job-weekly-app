@@ -509,8 +509,7 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     })),
   );
 
-  const missingContactCount = enrichedJobs.filter((job) => job.contacts.length === 0).length;
-  const summary = `${user.firstName ?? "You"} matched for ${targetRole} roles. ${applications.length} applications logged. Jobs refresh every 3 days. ${missingContactCount}/${enrichedJobs.length} roles need manual contact entry.`;
+  const summary = `${user.firstName ?? "You"} matched for ${targetRole} roles. ${applications.length} applications logged. Jobs refresh every 3 days.`;
 
   return { reportId, summary, recommendations: enrichedJobs, resume, outreach, reasoningByCompany };
 }

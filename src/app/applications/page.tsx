@@ -93,19 +93,12 @@ export default async function ApplicationsPage() {
                   <p className="font-semibold text-white">{rec.company}</p>
                 )}
                 <p className="text-sm text-white/50">{rec.role}</p>
-                {contacts.length === 0 && (
-                  <span className="inline-flex mt-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
-                    No contacts yet
-                  </span>
-                )}
                 <p className="text-xs text-white/30 leading-relaxed mt-2">{rec.reasoning}</p>
               </div>
 
               {/* Referral contacts */}
               <div className="space-y-3">
-                {contacts.length === 0 ? (
-                  <p className="text-xs text-white/25">No contacts yet</p>
-                ) : (
+                {contacts.length > 0 && (
                   contacts.map((contact, i) => (
                     <div key={i} className="rounded-xl border border-white/10 bg-white/[0.04] p-3 space-y-2">
                       <div>
