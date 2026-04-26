@@ -4,6 +4,7 @@ import { getAllActiveJobsForUser, getLatestReport, REPORT_TTL_MS } from "@/lib/s
 import { setApplicationStatusAction } from "./actions";
 import { TailoredResumeButton } from "./tailored-resume-button";
 import { GenerateReportButton } from "./generate-report-button";
+import { MarkAppliedButton } from "./mark-applied-button";
 
 export default async function ApplicationsPage() {
   const user = await requireActiveUser();
@@ -171,18 +172,7 @@ export default async function ApplicationsPage() {
                     </button>
                   </form>
                 ))}
-                <form action={setApplicationStatusAction}>
-                  <input type="hidden" name="company" value={rec.company} />
-                  <input type="hidden" name="role" value={rec.role} />
-                  <input type="hidden" name="status" value="applied" />
-                  <button
-                    type="submit"
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-all text-white/30 hover:text-[var(--accent-strong)] hover:bg-[var(--accent-strong)]/10"
-                  >
-                    <span className="size-2 rounded-full shrink-0 bg-[var(--accent-strong)]" />
-                    Mark Applied →
-                  </button>
-                </form>
+                <MarkAppliedButton company={rec.company} role={rec.role} />
                 <form action={setApplicationStatusAction}>
                   <input type="hidden" name="company" value={rec.company} />
                   <input type="hidden" name="role" value={rec.role} />
