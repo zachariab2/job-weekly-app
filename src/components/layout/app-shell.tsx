@@ -4,6 +4,8 @@ import { logoutAction } from "@/app/login/actions";
 
 const navItems = [
   { href: "/applications", label: "Applications" },
+  { href: "/report/weekly", label: "My Report" },
+  { href: "/completed", label: "Applied" },
   { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" },
 ];

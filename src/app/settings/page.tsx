@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 import { createReferralCodeAction, startCheckoutSession } from "../billing/actions";
 import { updateJobPrefsAction } from "./actions";
 import { CancelButton } from "./cancel-button";
+import { ReactivateButton } from "./reactivate-button";
+import { CopyLinkButton } from "../billing/copy-link-button";
 import Link from "next/link";
 
 export default async function SettingsPage() {
@@ -50,6 +52,9 @@ export default async function SettingsPage() {
               <p className="text-sm text-emerald-100/90 mt-1">Manage client profiles, preferences, notifications, and manual contacts.</p>
             </div>
             <div className="flex gap-2">
+              <Link href="/admin" className="rounded-xl border border-emerald-300/40 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-500/20">
+                Dashboard
+              </Link>
               <Link href="/admin/users" className="rounded-xl border border-emerald-300/40 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-500/20">
                 Users
               </Link>
@@ -108,11 +113,22 @@ export default async function SettingsPage() {
                 {subscription?.status === "active" ? "Active — $9.99/week" : "No active subscription"}
               </p>
               {nextChargeDate && (
-                <p className="text-xs text-white/40 mt-0.5">Next charge {nextChargeDate}</p>
+                <p className="text-xs text-white/40 mt-0.5">
+                  {subscription?.cancelAtPeriodEnd
+                    ? `Access continues until ${nextChargeDate}`
+                    : `Next charge ${nextChargeDate}`}
+                </p>
               )}
             </div>
             {subscription?.status === "active" ? (
-              <CancelButton />
+              subscription?.cancelAtPeriodEnd ? (
+                <div className="flex flex-col items-end gap-1">
+                  <ReactivateButton />
+                  <p className="text-xs text-white/50">Cancels {nextChargeDate ?? "end of period"}</p>
+                </div>
+              ) : (
+                <CancelButton />
+              )
             ) : (
               <form action={startCheckoutSession}>
                 <button className="rounded-xl bg-[var(--accent-strong)] px-4 py-2 text-sm font-semibold text-black hover:opacity-90 transition">
@@ -155,7 +171,10 @@ export default async function SettingsPage() {
                       className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
                     >
                       <p className="text-sm font-mono font-semibold text-white">{code.code}</p>
-                      <p className="text-xs text-white/40">{status}</p>
+                      <div className="flex items-center gap-3">
+                        {!code.redeemedByUserId && <CopyLinkButton code={code.code} />}
+                        <p className="text-xs text-white/40">{status}</p>
+                      </div>
                     </div>
                   );
                 })}

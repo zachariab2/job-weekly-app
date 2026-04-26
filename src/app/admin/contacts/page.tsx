@@ -35,10 +35,10 @@ export default async function AdminContactsPage() {
           {contacts.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">No manual contacts yet.</div>
           ) : (
-            contacts.map((c, index) => (
-              <div key={`${c.company}-${c.name}-${index}`} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+            contacts.map((c) => (
+              <div key={c.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
                 <form action={updateManualContactAction} className="grid md:grid-cols-2 gap-2">
-                  <input type="hidden" name="index" value={index} />
+                  <input type="hidden" name="id" value={c.id} />
                   <Input name="company" defaultValue={c.company} required />
                   <Input name="role" defaultValue={c.role ?? ""} />
                   <Input name="name" defaultValue={c.name} required />
@@ -50,7 +50,7 @@ export default async function AdminContactsPage() {
                   </div>
                 </form>
                 <form action={deleteManualContactAction}>
-                  <input type="hidden" name="index" value={index} />
+                  <input type="hidden" name="id" value={c.id} />
                   <button type="submit" className="rounded-lg border border-red-300/40 px-3 py-2 text-sm text-red-200 hover:bg-red-500/20">Delete</button>
                 </form>
               </div>

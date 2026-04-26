@@ -1,46 +1,40 @@
 import { SectionHeading } from "../ui/section-heading";
+import { FadeIn } from "./fade-in";
 
 const rows = [
   {
     feature: "Job matching",
-    massApply: "Search yourself",
-    jobBoards: "Keyword filter",
-    jobWeekly: "Curated 5 roles from your profile",
+    others: "Keyword search — you do the work",
+    jobWeekly: "5 roles curated to YOUR resume",
   },
   {
-    feature: "Referral paths",
-    massApply: "Cold LinkedIn",
-    jobBoards: "None",
-    jobWeekly: "Alumni + adjacent contacts per role",
-  },
-  {
-    feature: "Resume",
-    massApply: "One version for all",
-    jobBoards: "Generic optimization tips",
-    jobWeekly: "Bullets rewritten per company",
+    feature: "Contacts",
+    others: "Cold LinkedIn DMs, no context",
+    jobWeekly: "Alumni & recruiter at each company",
   },
   {
     feature: "Outreach",
-    massApply: "You write from scratch",
-    jobBoards: "None",
-    jobWeekly: "Template ready to send",
+    others: "You write from scratch every time",
+    jobWeekly: "Message written and ready to send",
   },
   {
-    feature: "Refresh cycle",
-    massApply: "Manual, whenever",
-    jobBoards: "Real-time (overwhelming)",
-    jobWeekly: "Every 3 days — focused, not noisy",
+    feature: "Resume",
+    others: "One generic version for every job",
+    jobWeekly: "Bullets rewritten per company",
   },
   {
     feature: "Volume",
-    massApply: "50+ generic apps/week",
-    jobBoards: "High",
+    others: "50+ random applications a week",
     jobWeekly: "5 targeted, high-probability moves",
   },
   {
+    feature: "Refresh",
+    others: "Manual — whenever you remember",
+    jobWeekly: "Every 3 days, automatically",
+  },
+  {
     feature: "Support",
-    massApply: "None",
-    jobBoards: "Docs / chatbot",
+    others: "None / chatbot",
     jobWeekly: "Human reply within 24h",
   },
 ];
@@ -48,49 +42,49 @@ const rows = [
 export function Comparison() {
   return (
     <section id="compare" className="space-y-10">
-      <SectionHeading
-        eyebrow="WHY JOBWEEKLY"
-        title="Quality over volume, every time"
-        description="Mass-applying is a lottery. JobWeekly replaces 50 random shots with 5 that are researched, personalized, and backed by a real referral path."
-      />
-      <div className="overflow-x-auto rounded-3xl border border-white/10">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead>
-            <tr className="border-b border-white/10">
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-widest text-white/30 w-[22%]">
-                Feature
-              </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-widest text-white/30 w-[26%]">
-                Mass applying
-              </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-widest text-white/30 w-[26%]">
-                Generic job boards
-              </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-widest text-[var(--accent)] w-[26%]">
-                JobWeekly
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr
-                key={row.feature}
-                className={i < rows.length - 1 ? "border-b border-white/5" : ""}
-              >
-                <td className="px-5 py-4 font-semibold text-white/70">{row.feature}</td>
-                <td className="px-5 py-4 text-white/40">{row.massApply}</td>
-                <td className="px-5 py-4 text-white/40">{row.jobBoards}</td>
-                <td className="px-5 py-4 font-medium text-white/90 bg-[var(--accent-strong)]/5">
-                  <span className="flex items-center gap-2">
-                    <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent-strong)]" />
-                    {row.jobWeekly}
-                  </span>
-                </td>
+      <FadeIn>
+        <SectionHeading
+          eyebrow="WHY JOBWEEKLY"
+          title="Most platforms give you a list. We give you a plan."
+          description="InternInsider gives you recruiter emails. LinkedIn gives you listings. Neither tells you who to contact, what to say, or how to tailor your resume. We do all three."
+        />
+      </FadeIn>
+      <FadeIn delay={0.1}>
+        <div className="overflow-x-auto rounded-3xl border border-white/10">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-widest text-white/30 w-[22%]">
+                  Feature
+                </th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-widest text-white/30 w-[39%]">
+                  Everyone else
+                </th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-widest text-[var(--accent)] w-[39%]">
+                  JobWeekly
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr
+                  key={row.feature}
+                  className={i < rows.length - 1 ? "border-b border-white/5" : ""}
+                >
+                  <td className="px-5 py-4 font-semibold text-white/70">{row.feature}</td>
+                  <td className="px-5 py-4 text-white/35">{row.others}</td>
+                  <td className="px-5 py-4 font-medium text-white/90 bg-[var(--accent-strong)]/5">
+                    <span className="flex items-center gap-2">
+                      <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent-strong)]" />
+                      {row.jobWeekly}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </FadeIn>
     </section>
   );
 }

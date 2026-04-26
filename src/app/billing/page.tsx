@@ -52,9 +52,15 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
           <h1 className="text-3xl font-semibold text-white">Subscription & referral credits</h1>
         </div>
         {subscription?.status === "active" ? (
-          <Button variant="secondary" disabled>
-            Manage in Stripe (coming soon)
-          </Button>
+          subscription?.cancelAtPeriodEnd ? (
+            <p className="text-xs text-amber-400/80">
+              Cancels {nextChargeDate ? nextChargeDate.toLocaleDateString() : "end of period"}
+            </p>
+          ) : (
+            <Button variant="secondary" disabled>
+              Manage in Stripe (coming soon)
+            </Button>
+          )
         ) : (
           <form action={startCheckoutSession}>
             <Button type="submit">Activate for $9.99/week</Button>
@@ -74,7 +80,9 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
             <p className="text-2xl font-semibold text-white">Premium Weekly</p>
             <p className="text-sm text-white/50">
               {subscription?.status === "active"
-                ? `Active · Next charge ${nextChargeDate ? nextChargeDate.toLocaleDateString() : "TBD"}`
+                ? subscription?.cancelAtPeriodEnd
+                  ? `Active · Cancels ${nextChargeDate ? nextChargeDate.toLocaleDateString() : "end of period"}`
+                  : `Active · Next charge ${nextChargeDate ? nextChargeDate.toLocaleDateString() : "TBD"}`
                 : "Pending activation — checkout to unlock the dashboard"}
             </p>
           </div>

@@ -51,6 +51,18 @@ export async function getResumeText(resumePath: string | null | undefined): Prom
 
 // ─── JSearch ──────────────────────────────────────────────────────────────────
 
+const AGGREGATOR_DOMAINS = [
+  "indeed.com", "ziprecruiter.com", "glassdoor.com", "monster.com",
+  "careerbuilder.com", "simplyhired.com", "snagajob.com", "dice.com",
+  "linkedin.com/jobs", "jobs.lever.co", "job-boards", "jobboard",
+];
+
+function cleanJobUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (AGGREGATOR_DOMAINS.some((d) => url.includes(d))) return null;
+  return url;
+}
+
 type JSearchJob = {
   job_id: string;
   employer_name: string;
@@ -75,7 +87,12 @@ function toJSearchEmploymentTypes(jobTypes: string): string {
   return [...new Set(types)].join(",");
 }
 
-async function fetchJSearchJobs(query: string, employmentTypes: string, count = 10): Promise<JSearchJob[]> {
+async function fetchJSearchJobs(
+  query: string,
+  employmentTypes: string,
+  count = 10,
+  remoteOnly = false,
+): Promise<JSearchJob[]> {
   const apiKey = process.env.JSEARCH_API_KEY;
   if (!apiKey) return [];
   try {
@@ -85,6 +102,7 @@ async function fetchJSearchJobs(query: string, employmentTypes: string, count = 
       date_posted: "month",
     });
     if (employmentTypes) params.set("employment_types", employmentTypes);
+    if (remoteOnly) params.set("remote_jobs_only", "true");
     const url = `https://jsearch.p.rapidapi.com/search?${params}`;
     const res = await fetch(url, {
       headers: {
@@ -157,6 +175,12 @@ const SKILL_LIST = [
   "data engineering","data science","backend","frontend","full stack","distributed systems",
   "Spark","Kafka","Airflow","dbt","Snowflake","BigQuery","Databricks",
   "iOS","Android","mobile","embedded","systems","security","blockchain","fintech",
+  "video editing","Adobe Premiere","Final Cut Pro","DaVinci Resolve","After Effects","CapCut",
+  "Canva","content creation","social media","TikTok","Instagram","YouTube","content strategy",
+  "copywriting","SEO","brand partnerships","influencer","email marketing","Adobe Photoshop",
+  "graphic design","Figma","UX design","UX research","project management","Notion","Asana",
+  "public relations","communications","journalism","writing","marketing","paid ads","analytics",
+  "Salesforce","HubSpot","customer success","account management","sales","business development",
 ];
 
 function extractTopSkills(resumeText: string, max = 4): string {
@@ -383,9 +407,39 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
 
   // Fetch real jobs from JSearch; fall back to catalog if unavailable
   const employmentTypes = toJSearchEmploymentTypes(prefs?.jobTypes ?? "internship");
-  const resumeSkills = resumeText ? extractTopSkills(resumeText) : "";
-  const searchQuery = `${targetRole} ${resumeSkills} ${industries}`.trim();
-  const jsearchJobs = await fetchJSearchJobs(searchQuery, employmentTypes, 5);
+  const remoteOnly = (prefs?.remotePreference ?? "").toLowerCase() === "remote";
+  const locationHint = prefs?.locations ? prefs.locations.split(",")[0].trim() : "";
+
+  // Build a focused primary query: role + location (cleaner than mixing everything)
+  const primaryQuery = `${targetRole} ${locationHint}`.trim().replace(/\s+/g, " ");
+
+  // Dream companies: search each one specifically and collect results
+  const dreamCompanyList = (prefs?.dreamCompanies ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .slice(0, 3); // cap at 3 to avoid too many API calls
+
+  const [primaryResults, ...dreamResults] = await Promise.all([
+    fetchJSearchJobs(primaryQuery, employmentTypes, 10, remoteOnly),
+    ...dreamCompanyList.map((company) =>
+      fetchJSearchJobs(`${targetRole} at ${company}`, employmentTypes, 3, remoteOnly)
+    ),
+  ]);
+
+  // Merge: dream company jobs first (user explicitly wants these), then primary results
+  const dreamJobs = dreamResults.flat().filter((j) => j.employer_name && j.job_title);
+  const primaryValid = primaryResults.filter((j) => j.employer_name && j.job_title);
+
+  // Deduplicate by job_id, keeping dream company jobs first
+  const seenIds = new Set<string>();
+  const merged: JSearchJob[] = [];
+  for (const job of [...dreamJobs, ...primaryValid]) {
+    if (!seenIds.has(job.job_id)) {
+      seenIds.add(job.job_id);
+      merged.push(job);
+    }
+  }
 
   let jobData: Array<{
     company: string;
@@ -394,25 +448,22 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     description: string;
   }>;
 
-  const validJobs = jsearchJobs.filter((j) => j.employer_name && j.job_title);
+  const top5JSearch = merged.slice(0, 5).map((j) => ({
+    company: j.employer_name,
+    role: j.job_title,
+    jobUrl: cleanJobUrl(j.job_apply_link),
+    description: j.job_description ?? "",
+  }));
 
-  if (validJobs.length >= 1) {
-    // Use real JSearch results — even a partial set is better than hardcoded
-    jobData = validJobs.slice(0, 5).map((j) => ({
-      company: j.employer_name,
-      role: j.job_title,
-      jobUrl: j.job_apply_link,
-      description: j.job_description ?? "",
-    }));
-  } else {
-    // Catalog fallback — only if JSearch is down or returned nothing
-    jobData = getSuggestionPool(prefs).slice(0, 5).map((entry) => ({
-      company: entry.company,
-      role: entry.role,
-      jobUrl: entry.jobUrl,
-      description: entry.reason,
-    }));
-  }
+  const needsMore = top5JSearch.length < 5;
+  const fallbackPool = needsMore ? getSuggestionPool(prefs).slice(0, 5 - top5JSearch.length).map((entry) => ({
+    company: entry.company,
+    role: entry.role,
+    jobUrl: entry.jobUrl || null,
+    description: entry.reason,
+  })) : [];
+
+  jobData = [...top5JSearch, ...fallbackPool];
 
   const manualContacts = await loadManualContacts();
 
@@ -487,71 +538,382 @@ type CatalogEntry = {
 };
 
 const catalog: CatalogEntry[] = [
+  // ─── Big Tech ──────────────────────────────────────────────────────────────
+  {
+    company: "Google",
+    role: "Software Engineering Intern",
+    jobUrl: "https://www.google.com/about/careers/applications/jobs/results/104981114489053894-software-engineering-intern/",
+    reason: "One of the most competitive SWE internships — strong algorithms, systems, or ML background is the entry point.",
+    resumeFocus: ["algorithms", "distributed systems", "Python", "C++"],
+    contacts: [],
+    keywords: ["software", "backend", "frontend", "ml", "infrastructure", "tech", "big tech"],
+  },
+  {
+    company: "Microsoft",
+    role: "Software Engineering Intern",
+    jobUrl: "https://www.microsoft.com/en-us/research/academic-program/undergraduate-research-internship-computing/",
+    reason: "Massive internship program across every team — cloud, AI, developer tools, and more.",
+    resumeFocus: ["C#", "Azure", "cloud", "software engineering"],
+    contacts: [],
+    keywords: ["software", "cloud", "backend", "frontend", "ai", "tech", "big tech"],
+  },
+  {
+    company: "Meta",
+    role: "Software Engineering Intern",
+    jobUrl: "https://www.metacareers.com/jobs/2659361741072293/",
+    reason: "Strong infrastructure, ML, and product teams — scale and impact from day one.",
+    resumeFocus: ["React", "Python", "distributed systems", "ML"],
+    contacts: [],
+    keywords: ["software", "ml", "infrastructure", "product", "social", "tech", "big tech"],
+  },
+  {
+    company: "Apple",
+    role: "Software Engineering Intern",
+    jobUrl: "https://jobs.apple.com/en-us/details/200606145/software-engineering-internships",
+    reason: "Hardware-software intersection, Swift/Obj-C ecosystem, and consumer products at massive scale.",
+    resumeFocus: ["Swift", "iOS", "systems", "C++"],
+    contacts: [],
+    keywords: ["software", "ios", "mobile", "systems", "hardware", "consumer", "big tech"],
+  },
+  {
+    company: "Amazon",
+    role: "Software Development Engineer Intern",
+    jobUrl: "https://amazon.jobs/en/jobs/3168855/system-development-engineer-internship-2026-us-project-leo",
+    reason: "AWS, retail, and emerging tech — backend and distributed systems experience is core.",
+    resumeFocus: ["backend", "distributed systems", "Java", "AWS"],
+    contacts: [],
+    keywords: ["software", "backend", "cloud", "aws", "infrastructure", "ecommerce", "big tech"],
+  },
+  {
+    company: "NVIDIA",
+    role: "Software Engineering Intern",
+    jobUrl: "https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/NVIDIA-2026-Internships--Software-Engineering-_JR2003206",
+    reason: "GPU computing, CUDA, and AI infrastructure — the backbone of modern deep learning.",
+    resumeFocus: ["CUDA", "C++", "GPU", "deep learning", "systems"],
+    contacts: [],
+    keywords: ["gpu", "ai", "ml", "systems", "hardware", "infrastructure", "research"],
+  },
+  // ─── AI / Research ────────────────────────────────────────────────────────
+  {
+    company: "OpenAI",
+    role: "Software Engineer Intern/Co-op",
+    jobUrl: "https://jobs.ashbyhq.com/openai/566ce27d-8a1c-497c-a301-0912010d7b29",
+    reason: "Frontier AI research and deployment — ML and systems engineers with strong fundamentals stand out.",
+    resumeFocus: ["Python", "machine learning", "LLM", "research"],
+    contacts: [],
+    keywords: ["ai", "ml", "llm", "research", "safety", "deep learning"],
+  },
   {
     company: "Databricks",
-    role: "Software Engineering Intern",
-    jobUrl: "https://www.databricks.com/company/careers/university-recruiting",
-    reason: "Heavy ML infrastructure + Python emphasis — distributed systems and data pipeline work maps directly.",
-    resumeFocus: ["distributed systems", "data pipelines", "Python"],
-    contacts: [
-      // ADD REAL CONTACTS HERE
-      // { name: "First Last", role: "ML Engineer", connectionBasis: "Alumni — MIT CS '24", contactEmail: "...", contactLinkedin: "https://linkedin.com/in/..." },
-    ],
-    keywords: ["ai", "ml", "data", "infrastructure", "research"],
+    role: "Data Science Intern",
+    jobUrl: "https://www.databricks.com/company/careers/university-recruiting/data-science-intern-2026-start-6866538002",
+    reason: "Data lakehouse and ML infrastructure — Python and distributed computing experience maps directly.",
+    resumeFocus: ["Python", "Spark", "distributed systems", "data engineering"],
+    contacts: [],
+    keywords: ["ai", "ml", "data", "infrastructure", "research", "databricks"],
   },
   {
-    company: "Vercel",
+    company: "Scale AI",
     role: "Software Engineering Intern",
-    jobUrl: "https://vercel.com/careers",
-    reason: "Frontend infrastructure at scale — Next.js and edge compute experience is a direct match.",
-    resumeFocus: ["Next.js", "frontend", "TypeScript"],
+    jobUrl: "https://job-boards.greenhouse.io/scaleai/jobs/4606014005",
+    reason: "Data labeling and AI infrastructure at the core of every frontier model — fast-paced and high-impact.",
+    resumeFocus: ["Python", "backend", "data pipelines", "ML"],
     contacts: [],
-    keywords: ["frontend", "next", "edge", "product", "web"],
+    keywords: ["ai", "ml", "data", "backend", "infrastructure", "llm"],
   },
   {
-    company: "Anthropic",
-    role: "Research Engineer Intern",
-    jobUrl: "https://www.anthropic.com/careers",
-    reason: "Strong ML background makes you competitive — they hire for safety evals and applied research.",
-    resumeFocus: ["machine learning", "research", "Python"],
+    company: "Harvey",
+    role: "Software Engineering Intern",
+    jobUrl: "https://jobs.ashbyhq.com/harvey/b6509622-5c1e-4a3f-916b-6e56b8fd212f",
+    reason: "LLM-powered legal tech startup — small team, huge scope, strong engineering culture.",
+    resumeFocus: ["Python", "LLM", "backend", "TypeScript"],
     contacts: [],
-    keywords: ["research", "ai", "safety", "ml", "llm"],
+    keywords: ["ai", "llm", "legaltech", "startup", "backend", "product"],
   },
+  {
+    company: "Adobe",
+    role: "Machine Learning Engineer Intern",
+    jobUrl: "https://careers.adobe.com/us/en/job/ADOBUSR162228EXTERNALENUS/2026-Intern-Machine-Learning-Engineer",
+    reason: "Creative AI, computer vision, and generative models — ML research and engineering blend together.",
+    resumeFocus: ["machine learning", "Python", "PyTorch", "computer vision"],
+    contacts: [],
+    keywords: ["ml", "ai", "computer vision", "design", "creative", "research"],
+  },
+  // ─── Fintech / Finance ────────────────────────────────────────────────────
   {
     company: "Stripe",
-    role: "Software Engineering Intern",
-    jobUrl: "https://stripe.com/jobs",
-    reason: "Payments infrastructure is complex distributed systems — backend experience is highly relevant.",
-    resumeFocus: ["backend", "APIs", "reliability"],
+    role: "Software Engineer Intern",
+    jobUrl: "https://stripe.com/jobs/listing/software-engineer-intern-summer-and-winter/7210115",
+    reason: "Payments infrastructure used by millions — backend and API engineering at serious scale.",
+    resumeFocus: ["backend", "APIs", "reliability", "Ruby", "Go"],
     contacts: [],
-    keywords: ["fintech", "backend", "payments", "infrastructure", "api"],
+    keywords: ["fintech", "backend", "payments", "infrastructure", "api", "stripe"],
   },
   {
-    company: "Linear",
-    role: "Software Engineering Intern",
-    jobUrl: "https://linear.app/careers",
-    reason: "Small high-craft team building developer tools — TypeScript and product sense stand out.",
-    resumeFocus: ["TypeScript", "product", "developer tools"],
+    company: "Ramp",
+    role: "Software Engineer Intern",
+    jobUrl: "https://jobs.ashbyhq.com/ramp/ccb1aca4-79ac-414b-b7d8-bc908c575ef1/application",
+    reason: "Fastest-growing fintech — full-stack engineers who ship fast thrive here.",
+    resumeFocus: ["full-stack", "Python", "TypeScript", "React"],
     contacts: [],
-    keywords: ["product", "devtools", "typescript", "design", "frontend"],
+    keywords: ["fintech", "fullstack", "backend", "startup", "payments", "saas"],
   },
   {
-    company: "Figma",
-    role: "Software Engineering Intern",
-    jobUrl: "https://www.figma.com/careers/",
-    reason: "Graphics, performance, and collaborative systems — frontend + systems work is the right mix.",
-    resumeFocus: ["frontend", "performance", "collaboration"],
+    company: "Robinhood",
+    role: "Software Engineering Intern, iOS",
+    jobUrl: "https://job-boards.greenhouse.io/robinhood/jobs/7239268",
+    reason: "Consumer fintech at scale — mobile, backend, and data engineering all valued.",
+    resumeFocus: ["iOS", "Swift", "mobile", "fintech"],
     contacts: [],
-    keywords: ["design", "frontend", "product", "collaboration", "graphics"],
+    keywords: ["fintech", "mobile", "ios", "consumer", "trading"],
+  },
+  {
+    company: "Plaid",
+    role: "Software Engineering Intern",
+    jobUrl: "https://app.ripplematch.com/v2/public/job/146d369a",
+    reason: "Financial data infrastructure connecting banks and fintechs — backend and API engineers in demand.",
+    resumeFocus: ["backend", "APIs", "Python", "data"],
+    contacts: [],
+    keywords: ["fintech", "backend", "api", "data", "infrastructure", "banking"],
+  },
+  {
+    company: "Intuit",
+    role: "Backend Engineering Intern",
+    jobUrl: "https://jobs.intuit.com/job/mountain-view/summer-2026-backend-engineering-intern/27595/87369451024",
+    reason: "TurboTax and QuickBooks powering small business finance — backend at consumer scale.",
+    resumeFocus: ["backend", "Java", "cloud", "microservices"],
+    contacts: [],
+    keywords: ["fintech", "backend", "saas", "consumer", "cloud"],
+  },
+  {
+    company: "Block, Inc.",
+    role: "Software Engineer Intern",
+    jobUrl: "https://block.xyz/careers/jobs/4904196008",
+    reason: "Square, Cash App, and Bitcoin infrastructure — payments and consumer fintech at scale.",
+    resumeFocus: ["backend", "mobile", "payments", "distributed systems"],
+    contacts: [],
+    keywords: ["fintech", "payments", "mobile", "backend", "bitcoin", "consumer"],
+  },
+  // ─── Quant / Finance ──────────────────────────────────────────────────────
+  {
+    company: "Jane Street",
+    role: "Software Engineering Intern",
+    jobUrl: "https://www.janestreet.com/join-jane-street/position/8069279002",
+    reason: "Top quant trading firm — OCaml, functional programming, and strong math background valued.",
+    resumeFocus: ["algorithms", "functional programming", "math", "systems"],
+    contacts: [],
+    keywords: ["quant", "finance", "trading", "algorithms", "math", "hft"],
+  },
+  {
+    company: "Two Sigma",
+    role: "Quantitative Researcher Intern",
+    jobUrl: "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2026-Summer/13257",
+    reason: "Data-driven quantitative investing — statistics, ML, and financial modeling all apply.",
+    resumeFocus: ["Python", "statistics", "machine learning", "data science"],
+    contacts: [],
+    keywords: ["quant", "finance", "trading", "ml", "data science", "research"],
+  },
+  {
+    company: "Citadel Securities",
+    role: "Trading Intern",
+    jobUrl: "https://www.citadelsecurities.com/careers/details/designated-market-maker-dmm-trading-intern-us/",
+    reason: "Elite market maker — quantitative reasoning, fast decision-making, and technical depth.",
+    resumeFocus: ["algorithms", "math", "statistics", "C++"],
+    contacts: [],
+    keywords: ["quant", "finance", "trading", "hft", "algorithms", "math"],
+  },
+  {
+    company: "Point72",
+    role: "Quantitative Researcher Intern",
+    jobUrl: "https://careers.point72.com/CSJobDetail?jobName=summer-2027-quantitative-researcher-internship&jobCode=CSS-0012295",
+    reason: "Systematic hedge fund — strong stats and ML background with financial application.",
+    resumeFocus: ["Python", "R", "statistics", "machine learning"],
+    contacts: [],
+    keywords: ["quant", "finance", "hedge fund", "research", "ml", "statistics"],
+  },
+  {
+    company: "Goldman Sachs",
+    role: "Analyst Intern",
+    jobUrl: "https://higher.gs.com/roles/150598",
+    reason: "Global investment bank — technology division values strong SWE and data skills.",
+    resumeFocus: ["Java", "Python", "data", "backend"],
+    contacts: [],
+    keywords: ["finance", "banking", "tech", "data", "quant", "investment banking"],
+  },
+  {
+    company: "Morgan Stanley",
+    role: "AI Strategy & Solutions Intern",
+    jobUrl: "https://morganstanley.tal.net/vx/lang-en-GB/mobile-0/brand-2/xf-f03044b2dac6/spa-1/candidate/so/pm/1/pl/1/opp/19975-2026-Firmwide-AI-Strategy-Solutions-Summer-Analyst-Program-New-York/en-GB",
+    reason: "Wall Street applying AI to financial services — ML and strategy skills valued equally.",
+    resumeFocus: ["Python", "machine learning", "data analysis", "finance"],
+    contacts: [],
+    keywords: ["finance", "ai", "ml", "banking", "strategy", "data"],
+  },
+  {
+    company: "JPMorgan Chase",
+    role: "Software Engineer Intern",
+    jobUrl: "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/210650080",
+    reason: "Largest US bank's tech division — Java, cloud, and fintech infrastructure at massive scale.",
+    resumeFocus: ["Java", "Python", "cloud", "backend"],
+    contacts: [],
+    keywords: ["finance", "banking", "backend", "cloud", "tech", "fintech"],
+  },
+  // ─── Infrastructure / Cloud ───────────────────────────────────────────────
+  {
+    company: "Cloudflare",
+    role: "Software Engineering Intern",
+    jobUrl: "https://job-boards.greenhouse.io/cloudflare/jobs/7206269",
+    reason: "Edge computing and internet security at the largest scale — Rust, Go, and networking expertise valued.",
+    resumeFocus: ["Rust", "Go", "networking", "systems", "security"],
+    contacts: [],
+    keywords: ["infrastructure", "security", "networking", "systems", "edge", "cloud"],
+  },
+  {
+    company: "Datadog",
+    role: "Software Engineering Intern",
+    jobUrl: "https://careers.datadoghq.com/detail/7367016/",
+    reason: "Monitoring and observability infrastructure — Go, distributed systems, and backend at cloud scale.",
+    resumeFocus: ["Go", "distributed systems", "backend", "monitoring"],
+    contacts: [],
+    keywords: ["infrastructure", "cloud", "backend", "devops", "monitoring", "saas"],
+  },
+  {
+    company: "Atlassian",
+    role: "Site Reliability Engineer Intern",
+    jobUrl: "https://join.atlassian.com/atlassian-talent-community/jobs/20958",
+    reason: "Jira and Confluence infrastructure team — reliability engineering and cloud platform work.",
+    resumeFocus: ["SRE", "cloud", "Kubernetes", "reliability"],
+    contacts: [],
+    keywords: ["infrastructure", "cloud", "devops", "sre", "reliability", "saas"],
+  },
+  {
+    company: "MongoDB",
+    role: "Software Engineer Intern",
+    jobUrl: "https://www.mongodb.com/careers/jobs/7335932",
+    reason: "Database infrastructure used by millions — distributed systems and database engineering.",
+    resumeFocus: ["distributed systems", "C++", "backend", "databases"],
+    contacts: [],
+    keywords: ["database", "infrastructure", "backend", "systems", "cloud", "saas"],
+  },
+  // ─── Consumer / Product ────────────────────────────────────────────────────
+  {
+    company: "Airbnb",
+    role: "Software Engineering Intern",
+    jobUrl: "https://careers.airbnb.com/positions/7453837/",
+    reason: "Two-sided marketplace at global scale — full-stack and backend engineers with product instincts thrive.",
+    resumeFocus: ["React", "Java", "full-stack", "mobile"],
+    contacts: [],
+    keywords: ["product", "consumer", "fullstack", "mobile", "marketplace"],
+  },
+  {
+    company: "Netflix",
+    role: "Technical Program Manager Intern",
+    jobUrl: "https://explore.jobs.netflix.net/careers/job/790313344084",
+    reason: "Streaming infrastructure at planetary scale — distributed systems, Java, and content delivery.",
+    resumeFocus: ["Java", "distributed systems", "backend", "streaming"],
+    contacts: [],
+    keywords: ["streaming", "consumer", "backend", "infrastructure", "product"],
+  },
+  {
+    company: "Uber",
+    role: "Software Engineer Intern",
+    jobUrl: "https://university-uber.icims.com/jobs/149140/job",
+    reason: "Real-time marketplace platform — Go, backend, and distributed systems at massive global scale.",
+    resumeFocus: ["Go", "backend", "distributed systems", "real-time"],
+    contacts: [],
+    keywords: ["backend", "infrastructure", "consumer", "marketplace", "rideshare"],
+  },
+  {
+    company: "Lyft",
+    role: "Software Engineer Intern (Backend)",
+    jobUrl: "https://app.careerpuck.com/job-board/lyft/job/8130804002",
+    reason: "Backend systems powering real-time ridesharing — Python and distributed systems experience valued.",
+    resumeFocus: ["Python", "backend", "distributed systems", "real-time"],
+    contacts: [],
+    keywords: ["backend", "consumer", "marketplace", "rideshare", "python"],
+  },
+  {
+    company: "TikTok",
+    role: "Frontend Software Engineer Intern",
+    jobUrl: "https://lifeattiktok.com/search/7595306554946193717",
+    reason: "Short-form video platform at global scale — frontend, mobile, and recommendation systems.",
+    resumeFocus: ["React", "TypeScript", "frontend", "mobile"],
+    contacts: [],
+    keywords: ["frontend", "mobile", "consumer", "social", "video", "content"],
   },
   {
     company: "Notion",
-    role: "Software Engineering Intern",
-    jobUrl: "https://www.notion.so/careers",
-    reason: "Design-minded engineering culture — product sense and full-stack experience are valued.",
-    resumeFocus: ["full-stack", "product", "React"],
+    role: "Software Engineer Intern, Mobile",
+    jobUrl: "https://jobs.ashbyhq.com/notion/1bda6206-2258-4c1f-a585-ef31ee56f1d4",
+    reason: "Product-first engineering culture building the future of productivity — React Native and TypeScript.",
+    resumeFocus: ["React Native", "TypeScript", "mobile", "product"],
     contacts: [],
-    keywords: ["product", "fullstack", "collaboration", "notion", "design"],
+    keywords: ["product", "mobile", "consumer", "saas", "productivity", "notion"],
+  },
+  {
+    company: "LinkedIn",
+    role: "Software Engineering Intern",
+    jobUrl: "https://www.linkedin.com/jobs/search/?currentJobId=4309096414",
+    reason: "Professional network powering recruiting and B2B — Java, Python, and data engineering valued.",
+    resumeFocus: ["Java", "Python", "data", "backend"],
+    contacts: [],
+    keywords: ["backend", "data", "social", "b2b", "consumer", "recruiting"],
+  },
+  // ─── Autonomous / Robotics ────────────────────────────────────────────────
+  {
+    company: "Waymo",
+    role: "Software Engineering Intern",
+    jobUrl: "https://careers.withwaymo.com/jobs?gh_jid=7347429",
+    reason: "Self-driving technology at the frontier — robotics, perception, and systems engineering.",
+    resumeFocus: ["C++", "Python", "robotics", "computer vision"],
+    contacts: [],
+    keywords: ["robotics", "autonomous", "self-driving", "ml", "systems", "computer vision"],
+  },
+  {
+    company: "Tesla",
+    role: "Software Engineer Intern",
+    jobUrl: "https://www.tesla.com/careers/search/job/261076",
+    reason: "Full-stack vehicle software and energy systems — C++, Python, and embedded systems all apply.",
+    resumeFocus: ["C++", "Python", "embedded", "systems"],
+    contacts: [],
+    keywords: ["hardware", "automotive", "robotics", "systems", "embedded", "ev"],
+  },
+  {
+    company: "SpaceX",
+    role: "Software Engineering Intern",
+    jobUrl: "https://boards.greenhouse.io/spacex/jobs/8190526002",
+    reason: "Rockets and satellites — systems engineering, embedded, and reliability at the highest stakes.",
+    resumeFocus: ["C++", "embedded", "systems", "reliability"],
+    contacts: [],
+    keywords: ["aerospace", "systems", "embedded", "hardware", "robotics"],
+  },
+  {
+    company: "Palantir",
+    role: "Software Engineering Intern",
+    jobUrl: "https://jobs.lever.co/palantir/030ece08-c341-4959-bdfe-314e89b691ce",
+    reason: "Data analytics for defense and enterprise — full-stack engineers who can work with complex data.",
+    resumeFocus: ["Java", "TypeScript", "full-stack", "data"],
+    contacts: [],
+    keywords: ["data", "defense", "enterprise", "fullstack", "analytics", "government"],
+  },
+  // ─── Startups ─────────────────────────────────────────────────────────────
+  {
+    company: "Ironclad",
+    role: "Software Engineer Intern",
+    jobUrl: "https://jobs.ashbyhq.com/ironcladhq/95ae3b0a-a061-4323-926a-7fa308b59387",
+    reason: "AI-powered contract management — fast-growing legaltech with strong engineering culture.",
+    resumeFocus: ["TypeScript", "React", "backend", "full-stack"],
+    contacts: [],
+    keywords: ["legaltech", "saas", "startup", "fullstack", "ai", "product"],
+  },
+  {
+    company: "Poshmark",
+    role: "Software Engineer Intern",
+    jobUrl: "https://jobs.ashbyhq.com/poshmark/062b84e6-1633-43ae-870b-83cb62893caa",
+    reason: "Social commerce marketplace — cloud platform and growth engineering roles.",
+    resumeFocus: ["cloud", "backend", "Python", "growth"],
+    contacts: [],
+    keywords: ["ecommerce", "consumer", "marketplace", "cloud", "backend", "social"],
   },
 ];
 

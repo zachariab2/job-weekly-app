@@ -11,6 +11,8 @@ export const users = sqliteTable("users", {
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(strftime('%s','now') * 1000)`)
     .notNull(),
+  emailVerifiedAt: integer("email_verified_at", { mode: "timestamp_ms" }),
+  emailVerificationToken: text("email_verification_token"),
 });
 
 export const profiles = sqliteTable("profiles", {
@@ -130,6 +132,7 @@ export const subscriptions = sqliteTable("subscriptions", {
   currentPeriodEnd: integer("current_period_end", { mode: "timestamp_ms" }),
   price: real("price").default(9.99),
   bonusWeeksApplied: integer("bonus_weeks_applied").default(0),
+  cancelAtPeriodEnd: integer("cancel_at_period_end", { mode: "boolean" }).default(false),
 });
 
 export const sessions = sqliteTable("sessions", {
@@ -147,6 +150,19 @@ export const referralCodes = sqliteTable("referral_codes", {
   redeemedByUserId: text("redeemed_by_user_id").references(() => users.id),
   redeemedAt: integer("redeemed_at", { mode: "timestamp_ms" }),
   issuedAt: integer("issued_at", { mode: "timestamp_ms" })
+    .default(sql`(strftime('%s','now') * 1000)`)
+    .notNull(),
+});
+
+export const manualContacts = sqliteTable("manual_contacts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  company: text("company").notNull(),
+  role: text("role"),
+  name: text("name").notNull(),
+  contactEmail: text("contact_email"),
+  contactLinkedin: text("contact_linkedin"),
+  connectionBasis: text("connection_basis"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(strftime('%s','now') * 1000)`)
     .notNull(),
 });

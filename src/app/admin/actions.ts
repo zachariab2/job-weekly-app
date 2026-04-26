@@ -1,7 +1,7 @@
 "use server";
 
 import { db, networkingLeads, subscriptions, users } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { requireOwner } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -47,6 +47,38 @@ export async function deleteContactAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
+const updateContactSchema = z.object({
+  contactId: z.string(),
+  name: z.string().min(1),
+  role: z.string().optional().default(""),
+  contactLinkedin: z.string().optional().default(""),
+  contactEmail: z.string().optional().default(""),
+  connectionBasis: z.string().optional().default(""),
+  outreachSnippet: z.string().optional().default(""),
+});
+
+export async function updateContactAction(formData: FormData) {
+  await requireOwner();
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = updateContactSchema.safeParse(raw);
+  if (!parsed.success) return;
+
+  const d = parsed.data;
+  const id = Number(d.contactId);
+  if (!id) return;
+
+  await db.update(networkingLeads).set({
+    name: d.name,
+    role: d.role || "Contact",
+    connectionBasis: d.connectionBasis || "Manual contact",
+    outreachSnippet: d.outreachSnippet || null,
+    contactLinkedin: d.contactLinkedin || null,
+    contactEmail: d.contactEmail || null,
+  }).where(eq(networkingLeads.id, id));
+
+  revalidatePath("/admin");
+}
+
 export async function activateUserAction(formData: FormData) {
   await requireOwner();
   const userId = formData.get("userId");
@@ -83,7 +115,12 @@ export async function deleteUserAction(formData: FormData) {
   await db.delete(applications).where(eq(applications.userId, userId));
   await db.delete(subs).where(eq(subs.userId, userId));
   await db.delete(notificationPreferences).where(eq(notificationPreferences.userId, userId));
-  await db.delete(referralCodes).where(eq(referralCodes.ownerUserId, userId));
+  await db.delete(referralCodes).where(
+    or(
+      eq(referralCodes.ownerUserId, userId),
+      eq(referralCodes.redeemedByUserId, userId)
+    )
+  );
   await db.delete(users).where(eq(users.id, userId));
 
   revalidatePath("/admin");

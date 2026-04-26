@@ -67,7 +67,7 @@ async function tailorResume(
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini",
     max_tokens: 4000,
     response_format: { type: "json_object" },
     messages: [

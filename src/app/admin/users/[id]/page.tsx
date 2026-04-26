@@ -63,6 +63,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <Input name="industries" label="Industries" defaultValue={prefs?.industries ?? ""} />
             <Input name="locations" label="Locations" defaultValue={prefs?.locations ?? ""} />
             <Input name="remotePreference" label="Remote preference" defaultValue={prefs?.remotePreference ?? ""} />
+            <Input name="dreamCompanies" label="Dream companies" placeholder="Stripe, Figma, Notion" defaultValue={prefs?.dreamCompanies ?? ""} />
             <Save />
           </form>
         </Section>
@@ -114,11 +115,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Input({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string }) {
+function Input({ name, label, defaultValue, placeholder }: { name: string; label: string; defaultValue?: string; placeholder?: string }) {
   return (
     <label className="space-y-1 text-xs text-white/60">
       <span>{label}</span>
-      <input name={name} defaultValue={defaultValue} className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white" />
+      <input name={name} defaultValue={defaultValue} placeholder={placeholder} className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white" />
     </label>
   );
 }

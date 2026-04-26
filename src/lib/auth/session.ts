@@ -81,6 +81,10 @@ export async function requireActiveUser() {
   // Skip subscription check in local dev
   if (process.env.NODE_ENV === "development") return user;
 
+  // Skip subscription check for owner accounts — never charge the admin
+  const ownerEmails = (process.env.OWNER_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (ownerEmails.includes((user.email ?? "").toLowerCase())) return user;
+
   let subscription;
   try {
     subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });

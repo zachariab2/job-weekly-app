@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { db, users } from "@/lib/db";
+import { db, users, profiles } from "@/lib/db";
 import { createSession, destroySession, verifyPassword } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
@@ -28,8 +28,14 @@ export async function loginAction(_: LoginResult, formData: FormData): Promise<L
 
   await createSession(user.id);
   const next = formData.get("next");
-  const safePath = typeof next === "string" && next.startsWith("/") ? next : "/applications";
-  redirect(safePath);
+  if (typeof next === "string" && next.startsWith("/")) {
+    redirect(next);
+  }
+  const profile = await db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) });
+  if (!profile) {
+    redirect("/onboarding");
+  }
+  redirect("/applications");
 }
 
 export async function logoutAction() {

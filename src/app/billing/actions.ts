@@ -28,6 +28,7 @@ export async function createReferralCodeAction(): Promise<void> {
 
   await db.insert(referralCodes).values({ code, ownerUserId: user.id });
   revalidatePath("/billing");
+  revalidatePath("/settings");
 }
 
 function makeCode() {
@@ -45,15 +46,34 @@ export async function cancelSubscriptionAction(): Promise<{ error?: string }> {
   const stripe = getStripeClient();
   try {
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, { cancel_at_period_end: true });
-    // Don't update DB status here — let the webhook sync it.
-    // Setting "canceled" immediately would conflict with the next webhook event
-    // which would overwrite it back to "active" (subscription stays active until period end).
+    await db.update(subscriptions).set({ cancelAtPeriodEnd: true }).where(eq(subscriptions.userId, user.id));
     revalidatePath("/settings");
     revalidatePath("/billing");
     return {};
   } catch (err) {
     console.error("[cancelSubscription] Stripe error:", err instanceof Error ? err.message : String(err));
     return { error: "Failed to cancel. Please try again or contact support." };
+  }
+}
+
+export async function reactivateSubscriptionAction(): Promise<{ error?: string }> {
+  const user = await requireUser();
+  const subscription = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, user.id) });
+
+  if (!subscription?.stripeSubscriptionId) {
+    return { error: "No subscription found." };
+  }
+
+  const stripe = getStripeClient();
+  try {
+    await stripe.subscriptions.update(subscription.stripeSubscriptionId, { cancel_at_period_end: false });
+    await db.update(subscriptions).set({ cancelAtPeriodEnd: false }).where(eq(subscriptions.userId, user.id));
+    revalidatePath("/settings");
+    revalidatePath("/billing");
+    return {};
+  } catch (err) {
+    console.error("[reactivateSubscription] Stripe error:", err instanceof Error ? err.message : String(err));
+    return { error: "Failed to reactivate. Please try again or contact support." };
   }
 }
 

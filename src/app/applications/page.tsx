@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireActiveUser } from "@/lib/auth/session";
-import { getAllActiveJobsForUser, getLatestReport } from "@/lib/services/report-service";
+import { getAllActiveJobsForUser, getLatestReport, REPORT_TTL_MS } from "@/lib/services/report-service";
 import { setApplicationStatusAction } from "./actions";
 import { TailoredResumeButton } from "./tailored-resume-button";
 import { GenerateReportButton } from "./generate-report-button";
@@ -16,6 +16,9 @@ export default async function ApplicationsPage() {
   const latestBatchDate = latestReport?.generatedAt
     ? new Date(latestReport.generatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     : null;
+  const isStale = latestReport?.generatedAt
+    ? Date.now() - new Date(latestReport.generatedAt).getTime() > REPORT_TTL_MS
+    : false;
 
   return (
     <AppShell active="/applications" user={user}>
@@ -48,12 +51,15 @@ export default async function ApplicationsPage() {
         <span className="w-[140px] text-right">Status</span>
       </div>
 
+      {/* Stale report — silently auto-refresh in background */}
+      {rows.length > 0 && isStale && <GenerateReportButton autoTrigger hidden />}
+
       {/* Rows */}
       <div className="space-y-2">
         {rows.length === 0 && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-12 text-center space-y-4">
             <p className="text-sm text-white/35">No job recommendations yet.</p>
-            <GenerateReportButton />
+            <GenerateReportButton autoTrigger />
           </div>
         )}
 

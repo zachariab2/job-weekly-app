@@ -15,9 +15,10 @@ export default async function ResumePage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/50">Resume vault</p>
-          <h1 className="text-3xl font-semibold text-white">Tailored resumes</h1>
+          <h1 className="text-3xl font-semibold text-white">Resume tips</h1>
+          <p className="text-sm text-white/50 mt-1">What to highlight per company — use these when tailoring on the Applications page.</p>
         </div>
-        <Button asChild><a href="/api/resume/download">Download current resume</a></Button>
+        <Button asChild><a href="/api/resume/download">Download my resume</a></Button>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         {resumeRecommendations.length === 0 && (
@@ -35,14 +36,9 @@ export default async function ResumePage() {
           const bullets = entry.bullets?.split("\n").map((line) => line.trim()).filter(Boolean) ?? [];
           return (
             <Card key={`${entry.reportId}-${entry.company}`} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-base font-semibold text-white">{entry.company}</p>
-                  <p className="text-xs text-white/50">Updated {report?.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : "recently"}</p>
-                </div>
-                <Button variant="secondary" size="sm" asChild>
-                  <a href="/api/resume/download">Download</a>
-                </Button>
+              <div>
+                <p className="text-base font-semibold text-white">{entry.company}</p>
+                <p className="text-xs text-white/50">Updated {report?.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : "recently"}</p>
               </div>
               <div className="space-y-2 text-sm text-white/70">
                 {bullets.map((bullet) => (
@@ -51,15 +47,6 @@ export default async function ResumePage() {
                   </p>
                 ))}
               </div>
-              {bullets.length > 0 && (
-                <div className="flex flex-wrap gap-2 text-xs text-white/60">
-                  {bullets.map((bullet) => (
-                    <span key={`${entry.company}-${bullet}`} className="rounded-full border border-white/10 px-3 py-1">
-                      {bullet.split(" ").slice(0, 2).join(" ")}
-                    </span>
-                  ))}
-                </div>
-              )}
             </Card>
           );
         })}

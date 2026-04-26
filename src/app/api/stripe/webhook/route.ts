@@ -51,6 +51,8 @@ export async function POST(req: Request) {
         if (userId && subId) {
           const subscription = await stripe.subscriptions.retrieve(subId);
           await syncSubscriptionRecord(userId, subscription);
+          // Safety net: finalize referral in case checkout.session.completed was missed
+          await finalizeReferralIfPresent(userId);
         }
         break;
       }
@@ -81,6 +83,8 @@ async function syncSubscriptionRecord(userId: string, subscription: Stripe.Subsc
   const sub = subscription as any;
   const currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
 
+  const cancelAtPeriodEnd = Boolean(subscription.cancel_at_period_end);
+
   const existing = await db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, userId) });
 
   if (existing) {
@@ -91,6 +95,7 @@ async function syncSubscriptionRecord(userId: string, subscription: Stripe.Subsc
         stripeSubscriptionId: subscription.id,
         currentPeriodEnd,
         trialEndsAt: null,
+        cancelAtPeriodEnd,
       })
       .where(eq(subscriptions.id, existing.id));
   } else {
@@ -99,6 +104,7 @@ async function syncSubscriptionRecord(userId: string, subscription: Stripe.Subsc
       status,
       stripeSubscriptionId: subscription.id,
       currentPeriodEnd,
+      cancelAtPeriodEnd,
     });
   }
 }

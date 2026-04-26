@@ -72,6 +72,36 @@ export async function signupAction(_: SignupResult, formData: FormData): Promise
     }
 
     await createSession(userId);
+
+    // Generate and store verification token
+    const verifyToken = randomUUID();
+    await db.update(users).set({ emailVerificationToken: verifyToken }).where(eq(users.id, userId));
+
+    // Send verification email (only if Resend is configured)
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(resendKey);
+        const appUrl = process.env.APP_URL ?? "https://getjobweekly.com";
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL ?? "JobWeekly <no-reply@getjobweekly.com>",
+          to: email,
+          subject: "Confirm your JobWeekly account",
+          html: `
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #0a0a0a; color: #fff; border-radius: 12px;">
+              <h2 style="margin: 0 0 8px; font-size: 20px;">Welcome to JobWeekly, ${firstName}.</h2>
+              <p style="color: #888; margin: 0 0 24px; font-size: 14px;">Click below to confirm your email and start your job search.</p>
+              <a href="${appUrl}/api/verify-email?token=${verifyToken}" style="display: inline-block; background: #adfa1d; color: #000; font-weight: 600; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 14px;">Confirm email</a>
+              <p style="color: #555; margin: 24px 0 0; font-size: 12px;">This link expires in 24 hours. If you didn't sign up, ignore this email.</p>
+            </div>
+          `,
+        });
+      } catch (err) {
+        console.error("[signup] Failed to send verification email:", err instanceof Error ? err.message : String(err));
+        // Don't block signup if email fails — user can still proceed
+      }
+    }
   } catch (error) {
     console.error("[signupAction] failed:", error);
 
@@ -83,5 +113,5 @@ export async function signupAction(_: SignupResult, formData: FormData): Promise
     return { error: "Signup failed. Please try again in a few seconds." };
   }
 
-  redirect("/onboarding");
+  redirect("/onboarding?welcome=1");
 }

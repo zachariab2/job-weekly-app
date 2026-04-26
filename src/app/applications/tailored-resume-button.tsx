@@ -5,7 +5,7 @@ import { useState } from "react";
 type State =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; changes: string[] }
+  | { status: "done"; changes: string[]; blobUrl: string; filename: string }
   | { status: "error"; message: string };
 
 export function TailoredResumeButton({ recId, company }: { recId: number; company: string }) {
@@ -13,6 +13,17 @@ export function TailoredResumeButton({ recId, company }: { recId: number; compan
 
   async function handleClick() {
     if (state.status === "loading") return;
+
+    if (state.status === "done") {
+      const a = document.createElement("a");
+      a.href = state.blobUrl;
+      a.download = state.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
     setState({ status: "loading" });
 
     try {
@@ -32,17 +43,17 @@ export function TailoredResumeButton({ recId, company }: { recId: number; compan
       // Trigger file download from the response blob
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
       const disposition = res.headers.get("content-disposition") ?? "";
       const match = disposition.match(/filename="([^"]+)"/);
+      const filename = match?.[1] ?? `Resume - ${company}.pdf`;
+      const a = document.createElement("a");
       a.href = url;
-      a.download = match?.[1] ?? `Resume - ${company}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-      setState({ status: "done", changes });
+      setState({ status: "done", changes, blobUrl: url, filename });
     } catch {
       setState({ status: "error", message: "Something went wrong. Try again." });
     }

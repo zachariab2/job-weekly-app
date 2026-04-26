@@ -1,35 +1,58 @@
-import { readFile, writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { db, manualContacts } from "@/lib/db";
+import { eq } from "drizzle-orm";
 
 export type ManualContact = {
+  id: number;
   company: string;
-  role?: string;
+  role?: string | null;
   name: string;
-  contactEmail?: string;
-  contactLinkedin?: string;
-  connectionBasis?: string;
+  contactEmail?: string | null;
+  contactLinkedin?: string | null;
+  connectionBasis?: string | null;
 };
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const JSON_FILE = path.join(DATA_DIR, "manual-contacts.json");
 
 export async function loadManualContacts(): Promise<ManualContact[]> {
   try {
-    const raw = await readFile(JSON_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed as ManualContact[];
+    return await db.query.manualContacts.findMany({
+      orderBy: (t, { asc }) => [asc(t.createdAt)],
+    });
   } catch {
     return [];
   }
 }
 
-export async function saveManualContacts(contacts: ManualContact[]) {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(JSON_FILE, JSON.stringify(contacts, null, 2), "utf8");
+export async function saveManualContact(data: Omit<ManualContact, "id">): Promise<void> {
+  await db.insert(manualContacts).values({
+    company: data.company,
+    role: data.role ?? null,
+    name: data.name,
+    contactEmail: data.contactEmail ?? null,
+    contactLinkedin: data.contactLinkedin ?? null,
+    connectionBasis: data.connectionBasis ?? null,
+  });
 }
 
-export async function getManualContactByIndex(index: number) {
-  const contacts = await loadManualContacts();
-  return contacts[index] ?? null;
+export async function updateManualContact(id: number, data: Omit<ManualContact, "id">): Promise<void> {
+  await db.update(manualContacts).set({
+    company: data.company,
+    role: data.role ?? null,
+    name: data.name,
+    contactEmail: data.contactEmail ?? null,
+    contactLinkedin: data.contactLinkedin ?? null,
+    connectionBasis: data.connectionBasis ?? null,
+  }).where(eq(manualContacts.id, id));
+}
+
+export async function deleteManualContact(id: number): Promise<void> {
+  await db.delete(manualContacts).where(eq(manualContacts.id, id));
+}
+
+export function getManualContactsForJob(company: string, role: string, contacts: ManualContact[]): ManualContact[] {
+  const companyLower = company.toLowerCase();
+  const roleLower = role.toLowerCase();
+  return contacts.filter((c) => {
+    if (c.company.toLowerCase() !== companyLower) return false;
+    if (c.role && !roleLower.includes(c.role.toLowerCase()) && !c.role.toLowerCase().includes(roleLower)) return false;
+    return true;
+  });
 }

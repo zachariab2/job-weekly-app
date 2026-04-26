@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useRef, useTransition, useEffect } from "react";
 import { completeOnboarding, uploadResumeAction, parseResumeFieldsAction } from "./actions";
 import { Button } from "@/components/ui/button";
 
@@ -57,6 +57,17 @@ export default function OnboardingPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [isNewSignup, setIsNewSignup] = useState(false);
+
+  useEffect(() => {
+    if (window.location.search.includes("verified=1")) {
+      setEmailVerified(true);
+    }
+    if (window.location.search.includes("welcome=1")) {
+      setIsNewSignup(true);
+    }
+  }, []);
 
   function set(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -123,6 +134,18 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-xl space-y-8">
+
+        {emailVerified && (
+          <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            ✓ Email confirmed. You&apos;re all set!
+          </div>
+        )}
+
+        {isNewSignup && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
+            Welcome to JobWeekly! You'll receive a welcome email from us within 1–3 business days.
+          </div>
+        )}
 
         {/* Progress */}
         <div className="space-y-3">
@@ -258,6 +281,15 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-4">
               <MultiPillGroup label="Target role(s)" name="targetRole" options={ROLE_OPTIONS} value={form.targetRole} onChange={set} />
+              {form.targetRole?.includes("Other") && (
+                <Field
+                  label="Describe your role(s)"
+                  name="customRole"
+                  value={form.customRole ?? ""}
+                  onChange={set}
+                  placeholder="Content Creator, Video Editor, Brand Partnerships Manager"
+                />
+              )}
               <Field label="Industries" name="industries" value={form.industries} onChange={set} placeholder="AI / ML, Fintech, Developer Tools" />
               <MultiPillGroup label="Job type(s)" name="jobTypes" options={JOB_TYPE_OPTIONS} value={form.jobTypes} onChange={set} />
               <MultiPillGroup label="Preferred locations" name="locations" options={CITY_OPTIONS} value={form.locations} onChange={set} />

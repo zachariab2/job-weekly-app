@@ -55,15 +55,16 @@ export async function saveClientJobPrefsAction(formData: FormData) {
   const industries = String(formData.get("industries") ?? "");
   const locations = String(formData.get("locations") ?? "");
   const remotePreference = String(formData.get("remotePreference") ?? "");
+  const dreamCompanies = String(formData.get("dreamCompanies") ?? "");
 
   const existing = await db.query.jobPreferences.findFirst({ where: eq(jobPreferences.userId, userId) });
   if (existing) {
     await db
       .update(jobPreferences)
-      .set({ targetRoles, jobTypes, industries, locations, remotePreference })
+      .set({ targetRoles, jobTypes, industries, locations, remotePreference, dreamCompanies })
       .where(eq(jobPreferences.id, existing.id));
   } else {
-    await db.insert(jobPreferences).values({ userId, targetRoles, jobTypes, industries, locations, remotePreference });
+    await db.insert(jobPreferences).values({ userId, targetRoles, jobTypes, industries, locations, remotePreference, dreamCompanies });
   }
 
   await logAdminEvent({

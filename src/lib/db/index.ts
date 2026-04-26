@@ -22,3 +22,21 @@ export * from "./schema";
 
 // Auto-migrate: add resume_text column if it doesn't exist yet
 client.execute("ALTER TABLE profiles ADD COLUMN resume_text text").catch(() => {});
+
+// Auto-migrate: add email verification columns to users if they don't exist yet
+client.execute("ALTER TABLE users ADD COLUMN email_verified_at INTEGER").catch(() => {});
+client.execute("ALTER TABLE users ADD COLUMN email_verification_token TEXT").catch(() => {});
+
+// Auto-migrate: create manual_contacts table if it doesn't exist yet
+client.execute(`
+  CREATE TABLE IF NOT EXISTS manual_contacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company TEXT NOT NULL,
+    role TEXT,
+    name TEXT NOT NULL,
+    contact_email TEXT,
+    contact_linkedin TEXT,
+    connection_basis TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000)
+  )
+`).catch(() => {});

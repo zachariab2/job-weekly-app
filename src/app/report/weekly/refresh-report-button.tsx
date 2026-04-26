@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { generateReportAction } from "./actions";
+import { refreshReportAction } from "./actions";
 
-export function GenerateReportButton({ autoTrigger, hidden }: { autoTrigger?: boolean; hidden?: boolean }) {
+export function RefreshReportButton({ label = "Refresh report" }: { label?: string }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const triggered = useRef(false);
 
   function handleClick() {
     setError(null);
     startTransition(async () => {
-      const result = await generateReportAction();
+      const result = await refreshReportAction();
       if (result.error) {
         setError(result.error);
       } else {
@@ -21,16 +20,6 @@ export function GenerateReportButton({ autoTrigger, hidden }: { autoTrigger?: bo
       }
     });
   }
-
-  useEffect(() => {
-    if (autoTrigger && !triggered.current) {
-      triggered.current = true;
-      handleClick();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (hidden) return error ? <p className="text-xs text-red-400">{error}</p> : null;
 
   return (
     <div className="space-y-2">
@@ -40,7 +29,7 @@ export function GenerateReportButton({ autoTrigger, hidden }: { autoTrigger?: bo
         onClick={handleClick}
         className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {pending ? "Generating your jobs… this takes ~30 seconds" : "Generate my first report"}
+        {pending ? "Generating… this takes ~30 seconds" : label}
       </button>
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>

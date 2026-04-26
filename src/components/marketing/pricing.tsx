@@ -2,25 +2,28 @@ import { SectionHeading } from "../ui/section-heading";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import { FadeIn } from "./fade-in";
 
 const features = [
   "5 curated roles per batch, refreshed every 3 days",
-  "Alumni + adjacent referral contacts per role",
+  "Alumni + referral contacts per role",
   "Resume bullets rewritten per company",
   "Outreach templates ready to copy and send",
-  "Application tracker and profile health score",
-  "Email + SMS alerts when your batch drops",
-  "Human support — reply to any email, 24h response",
+  "Application tracker",
+  "Email support — we reply to every message",
 ];
 
 export function Pricing() {
   return (
     <section id="pricing" className="space-y-10">
+      <FadeIn>
       <SectionHeading
         eyebrow="PRICING"
         title="One plan. Everything included."
         description="$9.99 a week is less than one coffee meeting. One referral that converts to an interview pays it back 100×."
       />
+      </FadeIn>
+      <FadeIn delay={0.1}>
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <Card className="space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-6">
@@ -72,11 +75,12 @@ export function Pricing() {
               Cohort-wide access with a custom domain, usage analytics, and concierge onboarding for your students.
             </p>
             <Button variant="secondary" size="sm" asChild>
-              <Link href="mailto:hello@getjobweekly.com">Get in touch</Link>
+              <Link href="mailto:getjobweekly@gmail.com">Get in touch</Link>
             </Button>
           </Card>
         </div>
       </div>
+      </FadeIn>
     </section>
   );
 }

@@ -135,6 +135,7 @@ const onboardingSchema = z.object({
   linkedin: z.string().optional().default(""),
   github: z.string().optional().default(""),
   targetRole: z.string().optional().default(""),
+  customRole: z.string().optional().default(""),
   jobTypes: z.string().optional().default(""),
   industries: z.string().optional().default(""),
   locations: z.string().optional().default(""),
@@ -171,9 +172,15 @@ async function upsertProfile(userId: string, data: Record<string, string>) {
 
 async function upsertJobPreferences(userId: string, data: Record<string, string>) {
   const existing = await db.query.jobPreferences.findFirst({ where: eq(jobPreferences.userId, userId) });
+  const resolvedTargetRoles = data.targetRole
+    ? data.targetRole.includes("Other") && data.customRole
+      ? data.targetRole.replace("Other", data.customRole).trim()
+      : data.targetRole
+    : "";
+
   if (existing) {
     await db.update(jobPreferences).set({
-      targetRoles: data.targetRole,
+      targetRoles: resolvedTargetRoles,
       industries: data.industries,
       jobTypes: data.jobTypes,
       locations: data.locations,
@@ -183,7 +190,7 @@ async function upsertJobPreferences(userId: string, data: Record<string, string>
   } else {
     await db.insert(jobPreferences).values({
       userId,
-      targetRoles: data.targetRole,
+      targetRoles: resolvedTargetRoles,
       industries: data.industries,
       jobTypes: data.jobTypes,
       locations: data.locations,

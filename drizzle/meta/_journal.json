@@ -8,6 +8,13 @@
       "when": 1773672600762,
       "tag": "0000_next_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1744588800000,
+      "tag": "0001_add_cancel_at_period_end",
+      "breakpoints": true
     }
   ]
 }
