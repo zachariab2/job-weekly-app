@@ -51,17 +51,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
           <p className="text-xs uppercase tracking-[0.3em] text-white/50">Billing</p>
           <h1 className="text-3xl font-semibold text-white">Subscription & referral credits</h1>
         </div>
-        {subscription?.status === "active" ? (
-          subscription?.cancelAtPeriodEnd ? (
-            <p className="text-xs text-amber-400/80">
-              Cancels {nextChargeDate ? nextChargeDate.toLocaleDateString() : "end of period"}
-            </p>
-          ) : (
-            <Button variant="secondary" disabled>
-              Manage in Stripe (coming soon)
-            </Button>
-          )
-        ) : (
+        {subscription?.status !== "active" && (
           <form action={startCheckoutSession}>
             <Button type="submit">Activate for $9.99/week</Button>
           </form>

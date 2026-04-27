@@ -143,7 +143,7 @@ export default function OnboardingPage() {
 
         {isNewSignup && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/70">
-            Welcome to JobWeekly! You'll receive a welcome email from us within 1–3 business days.
+            Welcome to JobWeekly! Finish setup below and your first batch generates automatically.
           </div>
         )}
 
@@ -348,7 +348,7 @@ export default function OnboardingPage() {
                   "Alumni referral paths with contact info",
                   "Resume bullets rewritten per company",
                   "Outreach templates ready to send",
-                  "Email + SMS alerts when your batch drops",
+                  "Email alerts when your batch drops",
                 ].map((item) => (
                   <li key={item} className="flex gap-2">
                     <span className="text-[var(--accent-strong)] shrink-0">✓</span>

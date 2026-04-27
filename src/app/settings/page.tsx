@@ -49,7 +49,7 @@ export default async function SettingsPage() {
           <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-5 flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-widest text-emerald-200/80">Owner Tools</p>
-              <p className="text-sm text-emerald-100/90 mt-1">Manage client profiles, preferences, notifications, and manual contacts.</p>
+              <p className="text-sm text-emerald-100/90 mt-1">Manage users, contacts, and preferences.</p>
             </div>
             <div className="flex gap-2">
               <Link href="/admin" className="rounded-xl border border-emerald-300/40 px-4 py-2 text-sm text-emerald-100 hover:bg-emerald-500/20">
