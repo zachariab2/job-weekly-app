@@ -14,6 +14,7 @@ import { v4 as uuid } from "uuid";
 import OpenAI from "openai";
 import { readFile } from "fs/promises";
 import { loadManualContacts, type ManualContact } from "@/lib/manual-contacts";
+import { fetchGitHubJobs, filterJobsForUser } from "./github-jobs";
 
 // Lazy OpenAI client — do NOT initialize at module level.
 // The OpenAI constructor throws if OPENAI_API_KEY is missing, which would crash
@@ -405,41 +406,16 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
   const targetRole = prefs?.targetRoles ?? "software engineering";
   const industries = prefs?.industries ?? "tech";
 
-  // Fetch real jobs from JSearch; fall back to catalog if unavailable
-  const employmentTypes = toJSearchEmploymentTypes(prefs?.jobTypes ?? "internship");
-  const remoteOnly = (prefs?.remotePreference ?? "").toLowerCase() === "remote";
-  const locationHint = prefs?.locations ? prefs.locations.split(",")[0].trim() : "";
-
-  // Build a focused primary query: role + location (cleaner than mixing everything)
-  const primaryQuery = `${targetRole} ${locationHint}`.trim().replace(/\s+/g, " ");
-
-  // Dream companies: search each one specifically and collect results
-  const dreamCompanyList = (prefs?.dreamCompanies ?? "")
-    .split(",")
-    .map((c) => c.trim())
-    .filter(Boolean)
-    .slice(0, 3); // cap at 3 to avoid too many API calls
-
-  const [primaryResults, ...dreamResults] = await Promise.all([
-    fetchJSearchJobs(primaryQuery, employmentTypes, 10, remoteOnly),
-    ...dreamCompanyList.map((company) =>
-      fetchJSearchJobs(`${targetRole} at ${company}`, employmentTypes, 3, remoteOnly)
-    ),
-  ]);
-
-  // Merge: dream company jobs first (user explicitly wants these), then primary results
-  const dreamJobs = dreamResults.flat().filter((j) => j.employer_name && j.job_title);
-  const primaryValid = primaryResults.filter((j) => j.employer_name && j.job_title);
-
-  // Deduplicate by job_id, keeping dream company jobs first
-  const seenIds = new Set<string>();
-  const merged: JSearchJob[] = [];
-  for (const job of [...dreamJobs, ...primaryValid]) {
-    if (!seenIds.has(job.job_id)) {
-      seenIds.add(job.job_id);
-      merged.push(job);
-    }
-  }
+  // Fetch live jobs from GitHub community repos (free, no API key, updated daily)
+  const allGitHubJobs = await fetchGitHubJobs(prefs?.jobTypes ?? "internship");
+  const githubMatches = filterJobsForUser(
+    allGitHubJobs,
+    targetRole,
+    prefs?.locations ?? "",
+    prefs?.remotePreference ?? "",
+    prefs?.dreamCompanies ?? "",
+    10,
+  );
 
   let jobData: Array<{
     company: string;
@@ -448,22 +424,32 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     description: string;
   }>;
 
-  const top5JSearch = merged.slice(0, 5).map((j) => ({
-    company: j.employer_name,
-    role: j.job_title,
-    jobUrl: cleanJobUrl(j.job_apply_link),
-    description: j.job_description ?? "",
+  const githubJobData = githubMatches.map((j) => ({
+    company: j.company,
+    role: j.role,
+    jobUrl: j.applyUrl,
+    description: "",
   }));
 
-  const needsMore = top5JSearch.length < 5;
-  const fallbackPool = needsMore ? getSuggestionPool(prefs).slice(0, 5 - top5JSearch.length).map((entry) => ({
-    company: entry.company,
-    role: entry.role,
-    jobUrl: entry.jobUrl || null,
-    description: entry.reason,
-  })) : [];
+  // Fall back to JSearch if GitHub yields too few results
+  const needsMore = githubJobData.length < 5;
+  let fallbackJobs: typeof githubJobData = [];
 
-  jobData = [...top5JSearch, ...fallbackPool];
+  if (needsMore) {
+    const employmentTypes = toJSearchEmploymentTypes(prefs?.jobTypes ?? "internship");
+    const remoteOnly = (prefs?.remotePreference ?? "").toLowerCase() === "remote";
+    const locationHint = prefs?.locations ? prefs.locations.split(",")[0].trim() : "";
+    const primaryQuery = `${targetRole} ${locationHint}`.trim();
+    const jsearchResults = await fetchJSearchJobs(primaryQuery, employmentTypes, 10 - githubJobData.length, remoteOnly);
+    fallbackJobs = jsearchResults.map((j) => ({
+      company: j.employer_name,
+      role: j.job_title,
+      jobUrl: cleanJobUrl(j.job_apply_link),
+      description: j.job_description ?? "",
+    }));
+  }
+
+  jobData = [...githubJobData, ...fallbackJobs];
 
   const manualContacts = await loadManualContacts();
 
