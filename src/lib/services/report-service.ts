@@ -414,7 +414,7 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     prefs?.locations ?? "",
     prefs?.remotePreference ?? "",
     prefs?.dreamCompanies ?? "",
-    10,
+    5,
   );
 
   let jobData: Array<{
@@ -440,7 +440,7 @@ async function buildBlueprint({ user, profile, prefs, applications, resumeText }
     const remoteOnly = (prefs?.remotePreference ?? "").toLowerCase() === "remote";
     const locationHint = prefs?.locations ? prefs.locations.split(",")[0].trim() : "";
     const primaryQuery = `${targetRole} ${locationHint}`.trim();
-    const jsearchResults = await fetchJSearchJobs(primaryQuery, employmentTypes, 10 - githubJobData.length, remoteOnly);
+    const jsearchResults = await fetchJSearchJobs(primaryQuery, employmentTypes, 5 - githubJobData.length, remoteOnly);
     fallbackJobs = jsearchResults.map((j) => ({
       company: j.employer_name,
       role: j.job_title,

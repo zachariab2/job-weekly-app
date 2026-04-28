@@ -5,7 +5,7 @@
   "crons": [
     {
       "path": "/api/cron/refresh-reports",
-      "schedule": "0 10 */3 * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
