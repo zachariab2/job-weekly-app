@@ -59,7 +59,7 @@ export function Hero() {
             The contacts to get in.<br className="hidden sm:block" />
             <span className="text-[var(--accent-strong)]"> Done for you.</span>
           </motion.h1>
-          <motion.p variants={item} className="max-w-2xl text-lg text-white/65 leading-relaxed">
+          <motion.p variants={item} className="max-w-2xl text-lg text-white/65 leading-[1.8]">
             Every 3 days, JobWeekly delivers 10 roles curated to your resume — each with the alumni
             contact who can refer you, the outreach message to send them, and resume bullets
             rewritten for that specific company. No cold-applying. No guessing.
