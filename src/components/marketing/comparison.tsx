@@ -5,7 +5,7 @@ const rows = [
   {
     feature: "Job matching",
     others: "Keyword search — you do the work",
-    jobWeekly: "5 roles curated to YOUR resume",
+    jobWeekly: "10 roles curated to YOUR resume",
   },
   {
     feature: "Contacts",

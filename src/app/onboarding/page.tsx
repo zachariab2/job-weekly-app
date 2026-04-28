@@ -165,7 +165,7 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-2.5">
               {[
-                { title: "5 curated jobs, refreshed every 3 days", body: "Real CS roles matched to your profile — internships, co-ops, new grad. A new batch drops automatically every 3 days so the list stays fresh." },
+                { title: "10 curated jobs, refreshed every 3 days", body: "Real CS roles matched to your profile — internships, co-ops, new grad. A new batch drops automatically every 3 days so the list stays fresh." },
                 { title: "Referral contacts for every job", body: "Alumni from your school first. No match? We find engineers with similar backgrounds and give you their contact info + a ready-to-send message." },
                 { title: "Resume tweaks per application", body: "Upload your resume once. We highlight what to change for each role based on the job description." },
                 { title: "Notifications when new matches drop", body: "You pick the threshold. Get a text or email when new unactioned jobs appear — no spam." },
@@ -308,7 +308,7 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-3">
               {[
-                { step: "1", title: "Your first batch generates", body: "5 roles matched to your resume and preferences. Alumni referral paths and outreach templates included." },
+                { step: "1", title: "Your first batch generates", body: "10 roles matched to your resume and preferences. Alumni referral paths and outreach templates included." },
                 { step: "2", title: "New batch every 3 days", body: "We refresh automatically. You'll always have fresh, relevant roles — no manual searching." },
                 { step: "3", title: "Tailor your resume per job", body: "One click rewrites your resume bullets for each company and downloads a clean PDF." },
               ].map((item) => (
@@ -344,7 +344,7 @@ export default function OnboardingPage() {
               </div>
               <ul className="space-y-2 text-xs text-white/50 pt-2 border-t border-white/5">
                 {[
-                  "5 curated roles matched to your profile, refreshed every 3 days",
+                  "10 curated roles matched to your profile, refreshed every 3 days",
                   "Alumni referral paths with contact info",
                   "Resume bullets rewritten per company",
                   "Outreach templates ready to send",

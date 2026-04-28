@@ -12,7 +12,7 @@ export function ConversionFooter() {
             Your next offer starts with<br className="hidden sm:block" /> the right contact.
           </h2>
           <p className="text-base text-white/55 leading-relaxed">
-            First report lands in minutes. 5 roles matched to your profile, with the alumni path
+            First report lands in minutes. 10 roles matched to your profile, with the alumni path
             and outreach message already written. Cancel anytime.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">

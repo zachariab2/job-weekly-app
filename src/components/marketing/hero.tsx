@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 const features = [
-  "5 roles matched to your resume",
+  "10 roles matched to your resume",
   "Alumni & recruiter contacts at each company",
   "Outreach message written for you",
   "Resume bullets tailored per company",
@@ -60,7 +60,7 @@ export function Hero() {
             <span className="text-[var(--accent-strong)]"> Done for you.</span>
           </motion.h1>
           <motion.p variants={item} className="max-w-2xl text-lg text-white/65 leading-relaxed">
-            Every 3 days, JobWeekly delivers 5 roles curated to your resume — each with the alumni
+            Every 3 days, JobWeekly delivers 10 roles curated to your resume — each with the alumni
             contact who can refer you, the outreach message to send them, and resume bullets
             rewritten for that specific company. No cold-applying. No guessing.
           </motion.p>

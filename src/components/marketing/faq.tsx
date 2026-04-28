@@ -5,11 +5,11 @@ import { FadeIn } from "./fade-in";
 const faqs = [
   {
     q: "Is this an auto-apply bot?",
-    a: "No. We focus on strategy and execution — you still control every outreach and application. The difference is you're moving with a plan: the right 5 roles, the referral path in, and a resume written for that company. Not 50 cold shots.",
+    a: "No. We focus on strategy and execution — you still control every outreach and application. The difference is you're moving with a plan: the right 10 roles, the referral path in, and a resume written for that company. Not 50 cold shots.",
   },
   {
     q: "How is this different from LinkedIn or Handshake?",
-    a: "Job boards show you everything and leave the rest to you. JobWeekly curates 5 roles matched to your profile, finds referral contacts at each one, rewrites your resume for each company, and writes the outreach message. You just execute.",
+    a: "Job boards show you everything and leave the rest to you. JobWeekly curates 10 roles matched to your profile, finds referral contacts at each one, rewrites your resume for each company, and writes the outreach message. You just execute.",
   },
   {
     q: "Where does the job data come from?",

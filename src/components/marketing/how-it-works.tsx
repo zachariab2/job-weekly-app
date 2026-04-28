@@ -14,7 +14,7 @@ const steps = [
     number: "02",
     title: "Your batch drops every 3 days",
     description:
-      "5 roles arrive in your dashboard, each with the alumni or recruiter contact who can get you in, a ready-to-send outreach message, and resume bullets rewritten for that specific company.",
+      "10 roles arrive in your dashboard, each with the alumni or recruiter contact who can get you in, a ready-to-send outreach message, and resume bullets rewritten for that specific company.",
     detail: "Dashboard · Contacts · Outreach · Tailored resume",
   },
   {

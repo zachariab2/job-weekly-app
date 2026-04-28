@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FadeIn } from "./fade-in";
 
 const features = [
-  "5 curated roles per batch, refreshed every 3 days",
+  "10 curated roles per batch, refreshed every 3 days",
   "Alumni + referral contacts per role",
   "Resume bullets rewritten per company",
   "Outreach templates ready to copy and send",

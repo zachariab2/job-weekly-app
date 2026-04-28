@@ -10,7 +10,7 @@ export function ReportPreview() {
       <SectionHeading
         eyebrow="SAMPLE REPORT"
         title="This is what lands in your dashboard"
-        description="Every 3 days: 5 curated roles, the alumni paths to get there, outreach templates written for you, and resume bullets rewritten per company."
+        description="Every 3 days: 10 curated roles, the alumni paths to get there, outreach templates written for you, and resume bullets rewritten per company."
       />
 
       {/* Highlights bar */}
